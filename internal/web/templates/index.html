@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transcoder</title>
+<style>
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --surface-2: #eaecf0; --border: #d9dde5;
+  --text: #171b24; --muted: #5f6878; --faint: #9aa3b2;
+  --accent: #0f8f84; --accent-soft: rgba(15,143,132,.12);
+  --good: #1f9d55; --warn: #b7791f; --crit: #c53d4b; --info: #3467c9;
+  --shadow: 0 1px 2px rgba(20,30,50,.06);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1216; --surface: #171b21; --surface-2: #1f242c; --border: #2a303a;
+    --text: #e6e9ef; --muted: #8e97a8; --faint: #5c6576;
+    --accent: #3fc2b4; --accent-soft: rgba(63,194,180,.14);
+    --good: #4fcf7f; --warn: #e2b04e; --crit: #f0616f; --info: #6f9df0;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1216; --surface: #171b21; --surface-2: #1f242c; --border: #2a303a;
+  --text: #e6e9ef; --muted: #8e97a8; --faint: #5c6576;
+  --accent: #3fc2b4; --accent-soft: rgba(63,194,180,.14);
+  --good: #4fcf7f; --warn: #e2b04e; --crit: #f0616f; --info: #6f9df0;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text); font: 14px/1.45 var(--sans);
+  padding: 0 16px 48px; min-height: 100vh;
+}
+a { color: var(--accent); }
+button, input, select {
+  font: inherit; color: inherit;
+}
+button {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer; white-space: nowrap;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { color: var(--crit); }
+button.small { padding: 3px 9px; font-size: 12px; }
+button:disabled { opacity: .5; cursor: default; }
+input[type=text], input[type=password], select {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; min-width: 0;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+
+/* top bar */
+.top {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding-block: 14px; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+.brand h1 { font-size: 18px; margin: 0; letter-spacing: -.01em; }
+.brand .ver { color: var(--faint); font-family: var(--mono); font-size: 12px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--surface);
+}
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.pill.on .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
+.pill.paused .dot { background: var(--warn); }
+.pill.off .dot { background: var(--crit); }
+.chip { font-family: var(--mono); font-size: 11.5px; color: var(--muted); background: var(--surface-2); padding: 2px 7px; border-radius: 4px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* stats strip */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; box-shadow: var(--shadow); }
+.stat .l { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.stat .v { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin-top: 2px; }
+.stat .s { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stat.hero .v { color: var(--accent); }
+
+/* sections */
+section { margin-bottom: 22px; }
+.sec-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sec-h h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0; font-weight: 600; }
+.sec-h .count { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.sec-h .spacer { flex: 1; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+.empty { color: var(--faint); padding: 18px 14px; text-align: center; font-size: 13px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+
+/* job rows */
+.job { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 14px; border-top: 1px solid var(--border); align-items: center; }
+.job:first-child { border-top: 0; }
+.job .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job .meta { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.job .meta .lib { color: var(--text); background: var(--surface-2); border-radius: 4px; padding: 1px 6px; font-size: 11.5px; }
+.job .ctl { display: flex; gap: 6px; }
+.bar { grid-column: 1 / -1; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s ease; }
+.job.cancelling .bar i { background: var(--warn); }
+.st { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.st.completed { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.st.skipped { color: var(--muted); background: var(--surface-2); }
+.st.failed { color: var(--crit); background: color-mix(in srgb, var(--crit) 14%, transparent); }
+.st.cancelled { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.st.interrupted { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.st.queued { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); }
+.saved { color: var(--good); font-weight: 500; }
+.msg { color: var(--muted); font-size: 12px; grid-column: 1 / -1; white-space: pre-wrap; word-break: break-word; }
+
+/* tabs */
+.tabs { display: flex; gap: 2px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 4px 10px; border-radius: 6px; font-size: 12.5px; }
+.tabs button.on { background: var(--surface-2); color: var(--text); }
+
+/* charts */
+.charts { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
+@media (max-width: 1100px) { .charts { grid-template-columns: 1fr 1fr; } .charts > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
+.chart { padding: 12px 14px; }
+.chart h3 { margin: 0 0 6px; font-size: 12px; font-weight: 500; color: var(--muted); display: flex; justify-content: space-between; }
+.chart h3 b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+
+/* storage bars */
+.store { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; }
+.store .row { display: grid; grid-template-columns: minmax(80px, 160px) 1fr auto; gap: 10px; align-items: center; font-size: 12.5px; }
+.store .row .n { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.store .row .bar { grid-column: auto; height: 8px; }
+.store .row .bar i { background: var(--info); }
+.store .row .bar.warn i { background: var(--warn); }
+.store .row .bar.crit i { background: var(--crit); }
+.store .row .t { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* log */
+pre.log { margin: 0; padding: 10px 14px; font: 11.5px/1.5 var(--mono); max-height: 320px; overflow: auto; white-space: pre; color: var(--muted); }
+pre.log .warn { color: var(--warn); } pre.log .err { color: var(--crit); }
+
+/* dialog */
+dialog { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 18px; width: min(520px, 92vw); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+dialog h3 { margin: 0 0 10px; font-size: 15px; }
+dialog form { display: grid; gap: 10px; }
+dialog label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+dialog .row { display: flex; gap: 8px; justify-content: flex-end; }
+dialog p.hint { margin: 0; color: var(--muted); font-size: 12px; }
+
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.err-banner { display: none; background: color-mix(in srgb, var(--crit) 12%, transparent); color: var(--crit); border: 1px solid var(--crit); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 13px; }
+.err-banner.show { display: block; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="brand"><h1 id="title">Transcoder</h1><span class="ver" id="version"></span></div>
+  <span class="pill off" id="workerPill"><span class="dot"></span><span id="workerText">connecting…</span></span>
+  <span class="chip" id="encChip" title="active encoder backend">—</span>
+  <span class="chip" id="dbChip" title="database">—</span>
+  <div class="actions">
+    <button id="pauseBtn">Pause</button>
+    <button id="scanBtn">Scan now</button>
+    <button id="addBtn">Add file</button>
+    <button id="keyBtn" title="API key" hidden>Key</button>
+    <button id="themeBtn" title="Toggle theme">◐</button>
+  </div>
+</header>
+
+<div class="err-banner" id="errBanner"></div>
+
+<div class="stats">
+  <div class="stat hero"><div class="l">Saved all time</div><div class="v" id="sAll">—</div><div class="s" id="sAllSub"></div></div>
+  <div class="stat"><div class="l">Saved · 30 days</div><div class="v" id="s30">—</div><div class="s" id="s30Sub"></div></div>
+  <div class="stat"><div class="l">Encoding</div><div class="v" id="sActive">—</div><div class="s" id="sActiveSub"></div></div>
+  <div class="stat"><div class="l">Queued</div><div class="v" id="sQueued">—</div><div class="s" id="sQueuedSub"></div></div>
+  <div class="stat"><div class="l">Failed</div><div class="v" id="sFailed">—</div><div class="s"><a href="#" id="retryFailed">retry recent</a></div></div>
+</div>
+
+<section>
+  <div class="sec-h"><h2>Encoding now</h2><span class="count" id="activeCount"></span></div>
+  <div class="panel" id="active"><div class="empty">Nothing encoding.</div></div>
+</section>
+
+<div class="two">
+  <section>
+    <div class="sec-h"><h2>Queue</h2><span class="count" id="queueCount"></span></div>
+    <div class="panel" id="queue"><div class="empty">Queue is empty.</div></div>
+  </section>
+  <section>
+    <div class="sec-h"><h2>Recent</h2><span class="spacer"></span>
+      <div class="tabs" id="recentTabs">
+        <button data-st="completed" class="on">Completed</button>
+        <button data-st="skipped">Skipped</button>
+        <button data-st="failed">Failed</button>
+        <button data-st="cancelled">Cancelled</button>
+      </div>
+    </div>
+    <div class="panel" id="recent"><div class="empty">No finished jobs yet.</div></div>
+  </section>
+</div>
+
+<section>
+  <div class="sec-h"><h2>System</h2><span class="count" id="lastScan"></span></div>
+  <div class="charts">
+    <div class="panel chart">
+      <h3><span>Space reclaimed, last 30 days</span><b id="dailyTotal"></b></h3>
+      <svg id="dailyChart" viewBox="0 0 600 160" preserveAspectRatio="none" aria-label="bytes saved per day"></svg>
+    </div>
+    <div class="panel chart">
+      <h3><span>Host, last hour</span><b id="hostNow"></b></h3>
+      <svg id="hostChart" viewBox="0 0 300 120" preserveAspectRatio="none" aria-label="cpu and memory"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>CPU</span><span><i style="background:var(--info)"></i>Memory</span></div>
+    </div>
+    <div class="panel chart" id="gpuPanel">
+      <h3><span id="gpuTitle">GPU, last hour</span><b id="gpuNow"></b></h3>
+      <svg id="gpuChart" viewBox="0 0 300 120" preserveAspectRatio="none" aria-label="gpu load"></svg>
+      <div class="legend" id="gpuLegend"><span><i style="background:var(--warn)"></i>Encoder</span><span><i style="background:var(--accent)"></i>GPU</span><span><i style="background:var(--info)"></i>VRAM</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>Libraries</h2></div>
+  <div class="panel store" id="storage"><div class="empty">Storage stats appear after the first scan.</div></div>
+</section>
+
+<section id="dlSection" hidden>
+  <div class="sec-h"><h2>Downloads</h2><span class="count" id="dlCount"></span></div>
+  <div class="panel" id="downloads"></div>
+</section>
+
+<section>
+  <div class="sec-h"><h2>Log</h2><span class="spacer"></span><button class="small" id="logRefresh">Refresh</button></div>
+  <div class="panel"><pre class="log" id="log">loading…</pre></div>
+</section>
+
+</div>
+
+<dialog id="addDlg">
+  <h3>Queue a file</h3>
+  <form id="addForm" method="dialog">
+    <label>Absolute path inside a library<input type="text" id="addPath" placeholder="/media/movies/Example (2024)/Example.mkv" required></label>
+    <label>Priority (higher runs first)<input type="text" id="addPrio" placeholder="library default"></label>
+    <p class="hint">The file is queued even if the scanner would skip it. The output must still be smaller than the source to replace it.</p>
+    <div class="row"><button type="button" id="addCancel">Cancel</button><button class="primary" type="submit">Queue</button></div>
+  </form>
+</dialog>
+
+<dialog id="keyDlg">
+  <h3>API key</h3>
+  <form id="keyForm" method="dialog">
+    <label>This server requires a key for changes. It is kept in this browser only.<input type="password" id="keyInput" autocomplete="off"></label>
+    <div class="row"><button type="button" id="keyCancel">Cancel</button><button class="primary" type="submit">Save</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+const state = { status: null, recentTab: 'completed', key: '', theme: '' };
+try { state.key = localStorage.getItem('transcoder.apiKey') || ''; state.theme = localStorage.getItem('transcoder.theme') || ''; } catch {}
+if (state.theme) document.documentElement.dataset.theme = state.theme;
+
+// ---------- helpers ----------
+const fmtBytes = (n) => {
+  n = Number(n) || 0; const neg = n < 0; n = Math.abs(n);
+  const u = ['B','KiB','MiB','GiB','TiB','PiB']; let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (neg ? '−' : '') + (i === 0 ? n : n.toFixed(n >= 100 ? 0 : n >= 10 ? 1 : 2)) + ' ' + u[i];
+};
+const fmtDur = (s) => {
+  s = Math.max(0, Math.round(s || 0));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return h ? `${h}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`;
+};
+const ago = (iso) => {
+  if (!iso) return '';
+  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d / 60) + ' min ago';
+  if (d < 86400) return Math.floor(d / 3600) + ' h ago';
+  return Math.floor(d / 86400) + ' d ago';
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = (o, n) => (o > 0 && n > 0) ? Math.round((1 - n / o) * 100) + '%' : '';
+let toastT; const toast = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400); };
+const showErr = (m) => { const b = $('errBanner'); if (!m) { b.classList.remove('show'); return; } b.textContent = m; b.classList.add('show'); };
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'Accept': 'application/json' }, opts.headers || {});
+  if (opts.method && opts.method !== 'GET') {
+    headers['Content-Type'] = 'application/json';
+    if (state.key) headers['X-API-Key'] = state.key;
+  }
+  const r = await fetch(path, Object.assign({}, opts, { headers }));
+  let body = null; try { body = await r.json(); } catch {}
+  if (r.status === 401) { $('keyBtn').hidden = false; $('keyDlg').showModal(); throw new Error('API key required'); }
+  if (!r.ok) throw new Error((body && body.error) || r.statusText);
+  return body;
+}
+const post = (p, body) => api(p, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
+
+// ---------- rendering ----------
+function renderStatus(s) {
+  state.status = s;
+  document.title = s.title || 'Transcoder';
+  $('title').textContent = s.title || 'Transcoder';
+  $('version').textContent = s.version && s.version !== 'dev' ? s.version : '';
+  const pill = $('workerPill');
+  pill.className = 'pill ' + (!s.worker_online ? 'off' : s.paused ? 'paused' : 'on');
+  $('workerText').textContent = !s.worker_online ? 'worker offline' : s.paused ? 'paused' : 'running';
+  $('encChip').textContent = s.encoder || 'encoder: detecting…';
+  $('dbChip').textContent = s.database;
+  $('pauseBtn').textContent = s.paused ? 'Resume' : 'Pause';
+  $('keyBtn').hidden = !s.auth_required;
+  $('lastScan').textContent = s.last_scan ? 'last scan ' + ago(s.last_scan) : '';
+  const c = s.counts || {};
+  $('sActive').textContent = (c.running || 0) + (c.processing || 0);
+  $('sQueued').textContent = (c.queued || 0) + (c.interrupted || 0);
+  $('sQueuedSub').textContent = c.interrupted ? c.interrupted + ' interrupted' : '';
+  $('sFailed').textContent = c.failed || 0;
+}
+
+function renderStats(st) {
+  $('sAll').textContent = fmtBytes(st.all_time.saved);
+  $('sAllSub').textContent = st.all_time.completed + ' files shrunk';
+  $('s30').textContent = fmtBytes(st.last_30d.saved);
+  $('s30Sub').textContent = st.last_30d.completed + ' completed · ' + st.last_30d.skipped + ' skipped';
+  const total = (st.daily || []).reduce((a, d) => a + d.saved, 0);
+  $('dailyTotal').textContent = fmtBytes(total);
+  drawDaily(st.daily || []);
+}
+
+function jobRow(j, kind) {
+  const meta = [];
+  meta.push(`<span class="lib">${esc(j.library)}</span>`);
+  if (j.original_codec) meta.push(`<span>${esc(j.original_codec)}${j.target_codec ? ' → ' + esc(j.target_codec) : ''}</span>`);
+  meta.push(`<span>${fmtBytes(j.original_size)}</span>`);
+  let ctl = '';
+  if (kind === 'active') {
+    if (j.speed) meta.push(`<span>${j.speed.toFixed(2)}×</span>`);
+    if (j.fps) meta.push(`<span>${Math.round(j.fps)} fps</span>`);
+    if (j.eta_seconds != null && j.progress < 100) meta.push(`<span>ETA ${fmtDur(j.eta_seconds)}</span>`);
+    meta.push(`<span>${j.progress.toFixed(1)}%</span>`);
+    if (j.worker_id) meta.push(`<span>${esc(j.worker_id)}</span>`);
+    ctl = j.cancel_requested ? `<button class="small" disabled>Cancelling…</button>` : `<button class="small danger" data-act="cancel" data-id="${j.id}">Cancel</button>`;
+    return `<div class="job ${j.cancel_requested ? 'cancelling' : ''}"><div class="name" title="${esc(j.file_path)}">${esc(j.file_name)}</div><div class="ctl">${ctl}</div>
+      <div class="meta">${meta.join('')}</div><div class="bar"><i style="width:${Math.max(0.5, j.progress)}%"></i></div></div>`;
+  }
+  if (kind === 'queue') {
+    meta.push(`<span>priority ${j.priority}</span>`);
+    if (j.status === 'interrupted') meta.push(`<span class="st interrupted">interrupted</span>`);
+    meta.push(`<span>added ${ago(j.created_at)}</span>`);
+    ctl = `<button class="small danger" data-act="cancel" data-id="${j.id}">Remove</button>`;
+    return `<div class="job"><div class="name" title="${esc(j.file_path)}">${esc(j.file_name)}</div><div class="ctl">${ctl}</div><div class="meta">${meta.join('')}</div></div>`;
+  }
+  // recent
+  meta.unshift(`<span class="st ${esc(j.status)}">${esc(j.status)}</span>`);
+  if (j.status === 'completed') meta.push(`<span class="saved">−${fmtBytes(j.saved)} (${pct(j.original_size, j.new_size)})</span>`);
+  meta.push(`<span>${ago(j.completed_at)}</span>`);
+  if (j.status !== 'completed') ctl = `<button class="small" data-act="retry" data-id="${j.id}">Retry</button>`;
+  const msg = (j.status !== 'completed' && j.message) ? `<div class="msg">${esc(j.message)}</div>` : '';
+  return `<div class="job"><div class="name" title="${esc(j.file_path)}">${esc(j.file_name)}</div><div class="ctl">${ctl}</div><div class="meta">${meta.join('')}</div>${msg}</div>`;
+}
+
+function renderList(el, jobs, kind, emptyText) {
+  el.innerHTML = jobs.length ? jobs.map((j) => jobRow(j, kind)).join('') : `<div class="empty">${emptyText}</div>`;
+}
+
+function drawDaily(days) {
+  const svg = $('dailyChart'); const W = 600, H = 160, padL = 44, padB = 22, padT = 8;
+  const max = Math.max(1, ...days.map((d) => d.saved));
+  const bw = (W - padL) / Math.max(1, days.length);
+  const y = (v) => padT + (H - padB - padT) * (1 - v / max);
+  const ticks = [0, 0.5, 1].map((f) => f * max);
+  let out = '';
+  for (const t of ticks) out += `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--border)" stroke-width="1"/>
+    <text x="${padL - 6}" y="${y(t) + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${esc(fmtBytes(t))}</text>`;
+  days.forEach((d, i) => {
+    const h = (H - padB - padT) * (d.saved / max);
+    out += `<rect x="${padL + i * bw + 1.5}" y="${y(d.saved)}" width="${Math.max(1, bw - 3)}" height="${h}" fill="var(--accent)" rx="1.5"><title>${esc(d.day)}: ${esc(fmtBytes(d.saved))} across ${d.jobs} files</title></rect>`;
+    if (i % 5 === 0 || i === days.length - 1) out += `<text x="${padL + i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(d.day.slice(5))}</text>`;
+  });
+  svg.innerHTML = out;
+}
+
+// drawLines renders 0-100% series: [{key, color, area}] over samples m.
+function drawLines(svg, m, series, emptyText) {
+  const W = 300, H = 120, padB = 4, padT = 4;
+  if (!m.length) { svg.innerHTML = `<text x="150" y="64" text-anchor="middle" font-size="11" fill="var(--faint)">${esc(emptyText)}</text>`; return null; }
+  const x = (i) => (i / Math.max(1, m.length - 1)) * W;
+  const y = (v) => padT + (H - padB - padT) * (1 - Math.min(100, Math.max(0, v || 0)) / 100);
+  const path = (key) => m.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p[key]).toFixed(1)).join(' ');
+  let out = '';
+  for (const t of [25, 50, 75]) out += `<line x1="0" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--border)" stroke-width="1"/>`;
+  for (const s of series) {
+    if (s.area) out += `<path d="${path(s.key)} L${W} ${H - padB} L0 ${H - padB} Z" fill="${s.color}" fill-opacity=".14"/>`;
+    out += `<path d="${path(s.key)}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`;
+  }
+  const last = m[m.length - 1];
+  out += `<circle cx="${x(m.length - 1)}" cy="${y(last[series[0].key])}" r="3" fill="${series[0].color}"/>`;
+  svg.innerHTML = out;
+  return last;
+}
+
+function drawHost(m) {
+  const last = drawLines($('hostChart'), m, [{ key: 'cpu_percent', color: 'var(--accent)', area: true }, { key: 'memory_percent', color: 'var(--info)' }], 'no samples yet');
+  $('hostNow').textContent = last ? `CPU ${Math.round(last.cpu_percent)}% · Mem ${Math.round(last.memory_percent)}%` : '';
+}
+
+function drawGPU(m) {
+  const g = m.filter((p) => p.gpu_percent != null);
+  const hasEnc = g.some((p) => p.gpu_encoder_percent != null);
+  const series = [];
+  if (hasEnc) series.push({ key: 'gpu_encoder_percent', color: 'var(--warn)', area: true });
+  series.push({ key: 'gpu_percent', color: 'var(--accent)', area: !hasEnc }, { key: 'gpu_memory_percent', color: 'var(--info)' });
+  $('gpuLegend').firstElementChild.hidden = !hasEnc;
+  const name = (state.status && state.status.gpu) ? state.status.gpu.replace(/^[a-z]+: /, '') : '';
+  $('gpuTitle').textContent = name ? name : 'GPU, last hour';
+  const last = drawLines($('gpuChart'), g, series, m.length ? 'no GPU counters (CPU encoding, or Intel)' : 'no samples yet');
+  $('gpuNow').textContent = last ? (hasEnc ? `Enc ${Math.round(last.gpu_encoder_percent)}% · ` : '') + `GPU ${Math.round(last.gpu_percent)}% · VRAM ${Math.round(last.gpu_memory_percent)}%` : '';
+}
+
+function renderStorage(rows) {
+  const el = $('storage');
+  if (!rows.length) { el.innerHTML = '<div class="empty">Storage stats appear after the first scan.</div>'; return; }
+  el.innerHTML = rows.map((r) => {
+    const fsUsed = r.total_bytes - r.free_bytes; const p = r.total_bytes ? fsUsed / r.total_bytes * 100 : 0;
+    const cls = p > 95 ? 'crit' : p > 85 ? 'warn' : '';
+    return `<div class="row"><div class="n" title="${esc(r.path)}">${esc(r.library || r.path)}</div>
+      <div class="bar ${cls}" title="filesystem ${p.toFixed(0)}% full"><i style="width:${p.toFixed(1)}%"></i></div>
+      <div class="t">${fmtBytes(r.used_bytes)} in ${r.file_count.toLocaleString()} files · ${fmtBytes(r.free_bytes)} free</div></div>`;
+  }).join('');
+}
+
+function renderDownloads(d) {
+  $('dlSection').hidden = !d.enabled;
+  if (!d.enabled) return;
+  const rows = d.active.length ? d.active : d.recent.slice(0, 8);
+  $('dlCount').textContent = d.active.length ? d.active.length + ' active' : 'recent';
+  $('downloads').innerHTML = rows.length ? rows.map((x) => {
+    const meta = [`<span class="lib">${esc(x.category || x.source)}</span>`, `<span>${fmtBytes(x.size_total)}</span>`];
+    if (x.status === 'downloading') meta.push(`<span>${fmtBytes(x.download_rate)}/s</span>`, `<span>${x.progress.toFixed(0)}%</span>`);
+    else meta.push(`<span class="st ${x.status === 'failed' ? 'failed' : 'completed'}">${esc(x.status)}</span>`);
+    const bar = x.status === 'downloading' ? `<div class="bar"><i style="width:${x.progress}%;background:var(--info)"></i></div>` : '';
+    return `<div class="job"><div class="name">${esc(x.title)}</div><div></div><div class="meta">${meta.join('')}</div>${bar}</div>`;
+  }).join('') : '<div class="empty">No downloads.</div>';
+}
+
+function renderLog(lines) {
+  const el = $('log');
+  el.innerHTML = lines.map((l) => {
+    const cls = /level=ERROR/.test(l) ? 'err' : /level=WARN/.test(l) ? 'warn' : '';
+    return cls ? `<span class="${cls}">${esc(l)}</span>` : esc(l);
+  }).join('\n') || 'log is empty';
+  el.scrollTop = el.scrollHeight;
+}
+
+// ---------- refresh loops ----------
+async function refreshFast() {
+  try {
+    const [status, active, queue] = await Promise.all([api('/api/status'), api('/api/jobs?status=active'), api('/api/jobs?status=queued&limit=50')]);
+    renderStatus(status);
+    renderList($('active'), active, 'active', 'Nothing encoding.');
+    $('activeCount').textContent = active.length ? active.length : '';
+    renderList($('queue'), queue, 'queue', 'Queue is empty.');
+    const q = (status.counts.queued || 0) + (status.counts.interrupted || 0);
+    $('queueCount').textContent = q > queue.length ? `showing ${queue.length} of ${q}` : (q || '');
+    showErr('');
+  } catch (e) { showErr('Cannot reach the transcoder: ' + e.message); }
+}
+async function refreshRecent() {
+  try { renderList($('recent'), await api(`/api/jobs?status=${state.recentTab}&limit=30`), 'recent', 'No finished jobs yet.'); } catch {}
+}
+async function refreshSlow() {
+  try {
+    const [stats, metrics, storage, dl] = await Promise.all([api('/api/stats'), api('/api/metrics?minutes=60'), api('/api/storage'), api('/api/downloads')]);
+    renderStats(stats); drawHost(metrics); drawGPU(metrics); renderStorage(storage); renderDownloads(dl);
+  } catch {}
+}
+async function refreshLog() { try { renderLog((await api('/api/logs?lines=200')).lines); } catch {} }
+
+// ---------- actions ----------
+$('pauseBtn').addEventListener('click', async () => {
+  try { await post(state.status && state.status.paused ? '/api/control/resume' : '/api/control/pause'); toast(state.status.paused ? 'Resumed' : 'Paused'); refreshFast(); } catch (e) { toast(e.message); }
+});
+$('scanBtn').addEventListener('click', async () => { try { await post('/api/control/scan'); toast('Scan requested'); } catch (e) { toast(e.message); } });
+$('retryFailed').addEventListener('click', async (ev) => { ev.preventDefault(); try { const r = await post('/api/control/retry-failed?limit=25'); toast(`Requeued ${r.requeued} failed job${r.requeued === 1 ? '' : 's'}`); refreshFast(); refreshRecent(); } catch (e) { toast(e.message); } });
+$('addBtn').addEventListener('click', () => { $('addPath').value = ''; $('addPrio').value = ''; $('addDlg').showModal(); });
+$('addCancel').addEventListener('click', () => $('addDlg').close());
+$('addForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const body = { path: $('addPath').value.trim() };
+  if ($('addPrio').value.trim()) body.priority = parseInt($('addPrio').value, 10);
+  try { const r = await post('/api/jobs', body); $('addDlg').close(); toast(r.queued ? 'Queued' : 'Already queued'); refreshFast(); } catch (e) { toast(e.message); }
+});
+$('keyBtn').addEventListener('click', () => { $('keyInput').value = state.key; $('keyDlg').showModal(); });
+$('keyCancel').addEventListener('click', () => $('keyDlg').close());
+$('keyForm').addEventListener('submit', (ev) => { ev.preventDefault(); state.key = $('keyInput').value; try { localStorage.setItem('transcoder.apiKey', state.key); } catch {} $('keyDlg').close(); toast('Key saved'); });
+$('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next; try { localStorage.setItem('transcoder.theme', next); } catch {}
+});
+$('logRefresh').addEventListener('click', refreshLog);
+$('recentTabs').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button[data-st]'); if (!b) return;
+  state.recentTab = b.dataset.st;
+  for (const x of $('recentTabs').querySelectorAll('button')) x.classList.toggle('on', x === b);
+  refreshRecent();
+});
+document.body.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button[data-act]'); if (!b) return;
+  const id = b.dataset.id;
+  try {
+    if (b.dataset.act === 'cancel') { const r = await post(`/api/jobs/${id}/cancel`); toast(r.result === 'requested' ? 'Stopping encode…' : 'Removed from queue'); }
+    if (b.dataset.act === 'retry') { await post(`/api/jobs/${id}/retry`); toast('Requeued'); refreshRecent(); }
+    refreshFast();
+  } catch (e) { toast(e.message); }
+});
+
+refreshFast(); refreshRecent(); refreshSlow(); refreshLog();
+setInterval(refreshFast, 3000);
+setInterval(refreshRecent, 15000);
+setInterval(refreshSlow, 60000);
+setInterval(refreshLog, 30000);
+})();
+</script>
+</body>
+</html>

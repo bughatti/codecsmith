@@ -1,0 +1,40 @@
+# Transcoder — single container, SQLite, dashboard on :8090.
+#
+#   mkdir -p config && cp config.example.yaml config/config.yaml   # edit libraries
+#   docker compose up -d
+#
+# Pick ONE hardware block below (or none for software encoding).
+
+services:
+  transcoder:
+    image: ghcr.io/bughatti/transcoder:latest
+    # build: .
+    container_name: transcoder
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - PUID=1000                  # owner of your media files
+      - PGID=1000
+      # - PGIDS=44,109             # extra groups (video, render) for /dev/dri
+      - TZ=UTC
+      # - TRANSCODER_API_KEY=change-me
+    volumes:
+      - ./config:/config
+      - /path/to/movies:/media/movies
+      - /path/to/shows:/media/shows
+    tmpfs:
+      - /tmp/transcoder:size=8G    # in-progress outputs; size it to your largest file
+
+    # --- NVIDIA (NVENC) — needs the NVIDIA Container Toolkit -------------
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu, video, compute, utility]
+
+    # --- Intel / AMD (QSV / VAAPI) ----------------------------------------
+    # devices:
+    #   - /dev/dri:/dev/dri

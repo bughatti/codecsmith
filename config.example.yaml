@@ -1,0 +1,83 @@
+# Transcoder configuration.
+# Copy to config.yaml and edit. Every value shown is the default unless noted.
+# Secrets can also come from the environment: TRANSCODER_DB_DSN,
+# TRANSCODER_API_KEY, SABNZBD_API_KEY, TRANSCODER_WEBHOOK_SECRET.
+
+data_dir: /config/data      # SQLite database + state
+log_dir: /config/logs       # transcoder.log (rotated); "" disables the file
+log_level: info             # debug | info | warn | error
+
+database:
+  driver: sqlite            # sqlite (zero setup) | postgres (multiple workers)
+  dsn: transcoder.db        # sqlite: file inside data_dir
+  # dsn: postgres://transcoder:password@db:5432/transcoder?sslmode=disable
+
+web:
+  listen: 0.0.0.0:8090
+  title: Transcoder
+  api_key: ""               # set to require X-API-Key on every change
+
+worker:
+  id: worker-1              # unique per worker when sharing a Postgres DB
+  max_concurrent: 2         # simultaneous ffmpeg processes
+  temp_dir: /tmp/transcoder # outputs are written here first (tmpfs is ideal)
+  scan_interval: 1h
+  min_file_age: 5m          # ignore files modified more recently than this
+  stale_after: 2h           # fail a job with no progress for this long
+  gpu_health_check: true    # periodic null-frame encode; exits on repeated failure
+  nice: 10                  # CPU priority for ffmpeg (0-19)
+  threads: 0                # ffmpeg thread cap, 0 = default
+
+encoder:
+  backend: auto             # auto | nvenc | qsv | vaapi | videotoolbox | software
+  codec: hevc               # hevc | av1 (profiles may override)
+  vaapi_device: /dev/dri/renderD128
+  ffmpeg: ffmpeg
+  ffprobe: ffprobe
+
+# A library is a directory tree. Nested libraries are fine; the deepest
+# matching path wins. Paths are as seen inside the container.
+libraries:
+  - name: Movies
+    path: /media/movies
+    profile: default
+    priority: 6             # higher runs first
+  - name: Shows
+    path: /media/shows
+    priority: 5
+  - name: Anime
+    path: /media/anime
+    profile: anime
+    max_concurrent: 1       # optional per-library cap
+
+# Profiles inherit every unset value from "default".
+profiles:
+  default:
+    quality: 28             # CRF/CQ scale (lower = better, bigger)
+    quality_same_codec: 32  # used when re-encoding an already-hevc file (0 = quality+4)
+    speed: medium           # fast | medium | slow
+    size_limit_gb: 5        # same-codec files only re-encode above this size (0 = never)
+    skip_below_kbps: 0      # skip sources already under this bitrate (0 = off)
+    skip_codecs: [av1]      # source codecs never converted (would not shrink)
+    max_bitrate: ""         # e.g. 4M
+    tune: ""                # animation | film | grain (where the backend supports it)
+    audio_codec: aac        # copy | aac | opus
+    audio_bitrate: 192k
+    audio_channels: 2       # 0 = keep source layout
+    audio_languages: [eng]  # keep these; if none match, ALL tracks are kept
+    subtitle_languages: [eng, und]   # soft subs to keep; never burned in
+    container: mkv          # mkv | mp4
+  anime:
+    quality: 24
+    max_bitrate: 4M
+    tune: animation
+    audio_bitrate: 128k
+    audio_languages: [jpn, eng]
+    skip_below_kbps: 2500
+
+integrations:
+  sabnzbd:
+    enabled: false
+    url: http://sabnzbd:8080
+    api_key: ""
+  webhook_secret: ""        # protects /api/webhook/* (falls back to web.api_key)

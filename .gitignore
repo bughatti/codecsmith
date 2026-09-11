@@ -1,0 +1,57 @@
+# --- secrets & per-install config (never commit) ---
+.env
+*.env
+!.env.example
+config.yaml
+config.yml
+config/
+*.local.yml
+*.local.yaml
+deploy/local/
+
+# --- databases & runtime output ---
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+data/
+logs/
+bin/
+dist/
+*.log
+
+# --- media: this repo is code only ---
+*.mkv
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.m4v
+*.ts
+*.m2ts
+*.mpg
+*.mpeg
+*.mp3
+*.flac
+*.m4a
+*.wav
+*.aac
+*.ogg
+*.opus
+*.epub
+*.mobi
+*.azw*
+*.iso
+*.img
+*.backup
+
+# --- editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+*~
+*.swp
