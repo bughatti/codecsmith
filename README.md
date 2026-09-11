@@ -133,8 +133,25 @@ profiles:
     skip_below_kbps: 2500    # already efficient; do not bother
 ```
 
-Profiles inherit from `default`, so you only write what differs. The two
-knobs worth understanding:
+Profiles inherit from `default`, so you only write what differs.
+
+### How small is "as small as possible"?
+
+Constant-quality encoding means you choose the picture and the size
+follows. For a two-hour 4K HDR film that starts at 50–70 GB:
+
+| Profile | Result | What you give up |
+|---|---|---|
+| `quality: 26`, `speed: slow` | 14–20 GB | nothing you can see on a TV |
+| **`quality: 28`, `speed: slow`** (default) | 10–15 GB | film grain is slightly softened |
+| `quality: 30`, `speed: slow` | 7–11 GB | dark scenes lose some texture |
+| `codec: av1`, `quality: 30` | 5–8 GB | same picture as HEVC 30, but only AV1-capable clients (Apple TV 4K 2022+, Shield, most 2023+ TVs) play it directly; older Roku and Fire TV make your server transcode on the fly |
+
+1080p sources scale down about 4x: a 30 GB remux lands at 3–6 GB on the
+default. These are worked examples in [`config.example.yaml`](config.example.yaml);
+copy the one you want onto a library's profile.
+
+The two knobs worth understanding:
 
 - **`quality`** is the CRF/CQ scale every backend maps onto: 24 is very
   good, 28 is good, 32 is where you start to notice. The same number gives a

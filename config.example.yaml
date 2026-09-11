@@ -75,6 +75,30 @@ profiles:
     audio_languages: [jpn, eng]
     skip_below_kbps: 2500
 
+# --- Quality options ---------------------------------------------------------
+# The default above (quality 28, speed medium) is the safe choice: a 4K HDR
+# remux of 50-70 GB lands at 10-15 GB and looks like the disc on a TV. If you
+# want smaller, copy one of these onto a library's profile. Sizes are for a
+# two-hour 4K film; 1080p scales down roughly 4x.
+#
+#   movies-safe:      quality 26, speed slow     -> 14-20 GB, indistinguishable from source
+#   movies (default): quality 28, speed slow     -> 10-15 GB, very good, grain slightly softened
+#   movies-smaller:   quality 30, speed slow     ->  7-11 GB, good; dark scenes lose some texture
+#   movies-av1:       codec av1, quality 30      ->  5-8 GB, same look as HEVC 30 in ~30% less space,
+#                                                    BUT only plays natively on AV1-capable clients
+#                                                    (Apple TV 4K 2022+, Shield, most 2023+ TVs, Chrome);
+#                                                    older Roku/Fire TV force a server transcode.
+#
+# profiles:
+#   movies-smaller:
+#     quality: 30
+#     quality_same_codec: 30
+#     speed: slow
+#   movies-av1:
+#     codec: av1
+#     quality: 30
+#     speed: slow
+
 integrations:
   sabnzbd:
     enabled: false

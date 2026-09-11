@@ -23,14 +23,19 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -o /out/transcoder ./cmd/transcoder
 
 FROM ubuntu:24.04
+ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
+# Intel's media driver (QSV/VAAPI on iHD) only exists for amd64; arm64 gets
+# ffmpeg + Mesa VAAPI (covers AMD and software encoding).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
-        intel-media-va-driver-non-free \
         libva-drm2 \
         mesa-va-drivers \
         ca-certificates \
         tini \
+    && if [ "$TARGETARCH" = "amd64" ]; then \
+         apt-get install -y --no-install-recommends intel-media-va-driver-non-free; \
+       fi \
     && rm -rf /var/lib/apt/lists/*
 
 # NVIDIA runtime capability hints (ignored on hosts without the runtime).
