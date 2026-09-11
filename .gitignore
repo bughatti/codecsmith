@@ -4,10 +4,10 @@
 !.env.example
 config.yaml
 config.yml
-config/
+/config/
 *.local.yml
 *.local.yaml
-deploy/local/
+/deploy/local/
 
 # --- databases & runtime output ---
 *.db
@@ -16,10 +16,10 @@ deploy/local/
 *.sqlite3
 *.dump
 *.sql.gz
-data/
-logs/
-bin/
-dist/
+/data/
+/logs/
+/bin/
+/dist/
 *.log
 
 # --- media: this repo is code only ---
