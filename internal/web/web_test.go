@@ -13,6 +13,7 @@ import (
 
 	"github.com/bughatti/codecsmith/internal/config"
 	"github.com/bughatti/codecsmith/internal/db"
+	"github.com/bughatti/codecsmith/internal/job"
 )
 
 type nudge struct{ woke, scanned int }
@@ -102,6 +103,29 @@ func TestDashboardAndStatus(t *testing.T) {
 	var lines map[string]any
 	if code := get(t, ts.URL+"/api/logs", &lines); code != 200 {
 		t.Error("logs")
+	}
+}
+
+func TestRequeueSkipped(t *testing.T) {
+	ts, store, n := newTestServer(t, "")
+	ctx := context.Background()
+	id, _ := store.AddJob(ctx, db.NewJob{FilePath: "/media/movies/a.mkv", Library: "Movies", OriginalSize: 10})
+	skipped := job.StatusSkipped
+	_ = store.UpdateJob(ctx, id, db.Update{Status: &skipped, Completed: true})
+
+	var st map[string]any
+	get(t, ts.URL+"/api/status", &st)
+	if st["dry_run"] != false || st["trash_enabled"] != false {
+		t.Errorf("status flags: %v", st)
+	}
+	code, out := post(t, ts.URL+"/api/control/requeue-skipped", "", "")
+	if code != 200 || out["requeued"] != float64(1) || n.woke == 0 {
+		t.Fatalf("requeue-skipped: %d %v woke=%d", code, out, n.woke)
+	}
+	var jobs []map[string]any
+	get(t, ts.URL+"/api/jobs?status=queued", &jobs)
+	if len(jobs) != 1 {
+		t.Errorf("job should be back in the queue: %v", jobs)
 	}
 }
 

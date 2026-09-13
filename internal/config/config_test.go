@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 const sample = `
@@ -85,6 +86,32 @@ func TestLibraryFor(t *testing.T) {
 	}
 	if _, ok := c.LibraryFor("/media/moviesx/x.mkv"); ok {
 		t.Error("prefix without separator must not match")
+	}
+}
+
+func TestDryRunAndTrash(t *testing.T) {
+	c, err := Load(writeCfg(t, sample), "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Worker.DryRun || c.Worker.TrashDir != "" {
+		t.Errorf("both must be off by default: %+v", c.Worker)
+	}
+	if c.Worker.TrashRetention != 14*24*time.Hour {
+		t.Errorf("trash retention default = %v", c.Worker.TrashRetention)
+	}
+	c2, err := Load(writeCfg(t, sample+"\nworker:\n  dry_run: true\n  trash_dir: /config/trash\n  trash_retention: 48h\n"), "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c2.Worker.DryRun || c2.Worker.TrashDir != "/config/trash" || c2.Worker.TrashRetention != 48*time.Hour {
+		t.Errorf("yaml not applied: %+v", c2.Worker)
+	}
+	t.Setenv("CODECSMITH_DRY_RUN", "false")
+	t.Setenv("CODECSMITH_TRASH_DIR", "/other")
+	c3, _ := Load(writeCfg(t, sample+"\nworker:\n  dry_run: true\n"), "all")
+	if c3.Worker.DryRun || c3.Worker.TrashDir != "/other" {
+		t.Errorf("env must win over file: %+v", c3.Worker)
 	}
 }
 

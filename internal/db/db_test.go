@@ -144,6 +144,30 @@ func TestStaleAndReclaim(t *testing.T) {
 	}
 }
 
+func TestRequeueByStatus(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	skipped := job.StatusSkipped
+	for _, p := range []string{"/m/a.mkv", "/m/b.mkv"} {
+		id, _ := s.AddJob(ctx, NewJob{FilePath: p, Library: "M", OriginalSize: 100})
+		_ = s.UpdateJob(ctx, id, Update{Status: &skipped, Completed: true})
+	}
+	failedID, _ := s.AddJob(ctx, NewJob{FilePath: "/m/c.mkv", Library: "M"})
+	_ = s.FailJob(ctx, failedID, "boom")
+
+	n, err := s.RequeueByStatus(ctx, []job.Status{job.StatusSkipped}, 100)
+	if err != nil || n != 2 {
+		t.Fatalf("requeued %d (%v), want 2", n, err)
+	}
+	counts, _ := s.CountByStatus(ctx)
+	if counts[job.StatusQueued] != 2 || counts[job.StatusFailed] != 1 {
+		t.Errorf("failed jobs must be left alone: %v", counts)
+	}
+	if n, _ := s.RequeueByStatus(ctx, nil, 10); n != 0 {
+		t.Error("no statuses means no work")
+	}
+}
+
 func TestStateMetricsStorage(t *testing.T) {
 	ctx := context.Background()
 	s := openTest(t)

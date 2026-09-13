@@ -636,7 +636,20 @@ func (s *Store) RequeueJob(ctx context.Context, id int64) (bool, error) {
 
 // RequeueFailed retries the most recent n failed jobs.
 func (s *Store) RequeueFailed(ctx context.Context, limit int) (int64, error) {
-	rows, err := s.query(ctx, `SELECT id FROM jobs WHERE status='failed' ORDER BY completed_at DESC NULLS LAST LIMIT ?`, limit)
+	return s.RequeueByStatus(ctx, []job.Status{job.StatusFailed}, limit)
+}
+
+// RequeueByStatus puts the most recent jobs in the given statuses back in
+// the queue. Used to re-run everything a dry run skipped.
+func (s *Store) RequeueByStatus(ctx context.Context, statuses []job.Status, limit int) (int64, error) {
+	if len(statuses) == 0 {
+		return 0, nil
+	}
+	args := statusArgs(statuses)
+	args = append(args, limit)
+	rows, err := s.query(ctx, fmt.Sprintf(
+		`SELECT id FROM jobs WHERE status IN (%s) ORDER BY completed_at DESC NULLS LAST LIMIT ?`,
+		placeholders(len(statuses))), args...)
 	if err != nil {
 		return 0, err
 	}

@@ -168,6 +168,7 @@ dialog p.hint { margin: 0; color: var(--muted); font-size: 12px; }
   <span class="pill off" id="workerPill"><span class="dot"></span><span id="workerText">connecting…</span></span>
   <span class="chip" id="encChip" title="active encoder backend">—</span>
   <span class="chip" id="dbChip" title="database">—</span>
+  <span class="pill paused" id="dryPill" hidden><span class="dot"></span>dry run · no files are changed</span>
   <div class="actions">
     <button id="pauseBtn">Pause</button>
     <button id="scanBtn">Scan now</button>
@@ -205,6 +206,7 @@ dialog p.hint { margin: 0; color: var(--muted); font-size: 12px; }
         <button data-st="failed">Failed</button>
         <button data-st="cancelled">Cancelled</button>
       </div>
+      <button class="small" id="requeueSkipped" hidden>Requeue all</button>
     </div>
     <div class="panel" id="recent"><div class="empty">No finished jobs yet.</div></div>
   </section>
@@ -326,6 +328,7 @@ function renderStatus(s) {
   $('dbChip').textContent = s.database;
   $('pauseBtn').textContent = s.paused ? 'Resume' : 'Pause';
   $('keyBtn').hidden = !s.auth_required;
+  $('dryPill').hidden = !s.dry_run;
   $('lastScan').textContent = s.last_scan ? 'last scan ' + ago(s.last_scan) : '';
   const c = s.counts || {};
   $('sActive').textContent = (c.running || 0) + (c.processing || 0);
@@ -516,10 +519,14 @@ $('themeBtn').addEventListener('click', () => {
   document.documentElement.dataset.theme = next; try { localStorage.setItem('codecsmith.theme', next); } catch {}
 });
 $('logRefresh').addEventListener('click', refreshLog);
+$('requeueSkipped').addEventListener('click', async () => {
+  try { const r = await post('/api/control/requeue-skipped'); toast(`Requeued ${r.requeued} skipped job${r.requeued === 1 ? '' : 's'}`); refreshFast(); refreshRecent(); } catch (e) { toast(e.message); }
+});
 $('recentTabs').addEventListener('click', (ev) => {
   const b = ev.target.closest('button[data-st]'); if (!b) return;
   state.recentTab = b.dataset.st;
   for (const x of $('recentTabs').querySelectorAll('button')) x.classList.toggle('on', x === b);
+  $('requeueSkipped').hidden = state.recentTab !== 'skipped';
   refreshRecent();
 });
 document.body.addEventListener('click', async (ev) => {

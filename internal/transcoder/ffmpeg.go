@@ -222,6 +222,15 @@ func (t *Transcoder) Transcode(ctx context.Context, j *job.Job, progress Progres
 		return &Result{Status: job.StatusFailed, Message: msg}, errors.New(msg)
 	}
 
+	// Dry run: everything above is real work, only the replacement is
+	// withheld. The caller gets the measured saving and the source is
+	// untouched.
+	if t.cfg.Worker.DryRun {
+		msg := fmt.Sprintf("dry run: would save %s (%s → %s); source untouched",
+			humanBytes(origSize-newSize), humanBytes(origSize), humanBytes(newSize))
+		return &Result{Status: job.StatusSkipped, NewSize: newSize, TargetCodec: target, Message: msg}, nil
+	}
+
 	// Install: source → .backup, temp → source (copy across filesystems).
 	finalPath := j.FilePath
 	if filepath.Ext(finalPath) != ext {
@@ -236,7 +245,12 @@ func (t *Transcoder) Transcode(ctx context.Context, j *job.Job, progress Progres
 		return &Result{Status: job.StatusFailed}, fmt.Errorf("install: %w", err)
 	}
 	_ = os.Chmod(finalPath, info.Mode().Perm())
-	_ = os.Remove(backup)
+	if err := t.retireOriginal(backup, j.FilePath, lib.Path); err != nil {
+		// The new file is already in place; the old one is still on disk as
+		// .backup. Say so loudly rather than deleting data we were asked to keep.
+		log.Error("could not move the original to the trash dir; it is still on disk as .backup",
+			"backup", backup, "err", err)
+	}
 	if finalPath != j.FilePath {
 		log.Info("container changed", "from", filepath.Base(j.FilePath), "to", filepath.Base(finalPath))
 	}
@@ -475,6 +489,45 @@ func humanBytes(n int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.2f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
+}
+
+// retireOriginal disposes of the replaced source: deleted by default, or
+// moved into the trash directory when one is configured.
+func (t *Transcoder) retireOriginal(backup, origPath, libraryPath string) error {
+	if t.cfg.Worker.TrashDir == "" {
+		return os.Remove(backup)
+	}
+	dest := uniquePath(TrashPath(t.cfg.Worker.TrashDir, libraryPath, origPath))
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
+	}
+	return MoveFile(backup, dest)
+}
+
+// TrashPath mirrors the file's path inside the library under trashDir, so
+// two files with the same name in different folders never collide.
+func TrashPath(trashDir, libraryPath, filePath string) string {
+	rel, err := filepath.Rel(libraryPath, filePath)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		rel = filepath.Base(filePath)
+	}
+	return filepath.Join(trashDir, rel)
+}
+
+// uniquePath appends a counter until the path is free.
+func uniquePath(p string) string {
+	if _, err := os.Stat(p); err != nil {
+		return p
+	}
+	ext := filepath.Ext(p)
+	base := strings.TrimSuffix(p, ext)
+	for i := 1; i < 1000; i++ {
+		cand := fmt.Sprintf("%s.%d%s", base, i, ext)
+		if _, err := os.Stat(cand); err != nil {
+			return cand
+		}
+	}
+	return p
 }
 
 // HardLinks reports how many directory entries point at this file's inode.

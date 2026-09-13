@@ -42,6 +42,9 @@ type Config struct {
 	Mode string `yaml:"-"`
 	// Path is where the config file was loaded from ("" if none).
 	Path string `yaml:"-"`
+	// Seeded is true when no config existed and the bundled example was
+	// written into place on this run.
+	Seeded bool `yaml:"-"`
 }
 
 // Database selects the storage backend.
@@ -94,6 +97,15 @@ type Worker struct {
 	// client still seeding the other copy keeps the original on disk and the
 	// library uses twice the space.
 	AllowHardlinked bool `yaml:"allow_hardlinked"`
+	// DryRun encodes every job and measures the result but never replaces
+	// the source: the output is deleted and the saving is reported. Use it
+	// to see what a library would save before letting anything be written.
+	DryRun bool `yaml:"dry_run"`
+	// TrashDir keeps replaced originals instead of deleting them, mirroring
+	// their path inside the library. Empty deletes them, which is the
+	// default. Anything older than TrashRetention is pruned daily.
+	TrashDir       string        `yaml:"trash_dir"`
+	TrashRetention time.Duration `yaml:"trash_retention"`
 }
 
 // Encoder selects the hardware/software backend.
@@ -209,6 +221,7 @@ func Defaults() *Config {
 			MetricsRetention: 7 * 24 * time.Hour,
 			GPUHealthCheck:   true,
 			Nice:             10,
+			TrashRetention:   14 * 24 * time.Hour,
 		},
 		Encoder: Encoder{
 			Backend:     "auto",
@@ -253,6 +266,12 @@ func Load(path, mode string) (*Config, error) {
 				path = cand
 				break
 			}
+		}
+	}
+	if path == "" {
+		if seeded := seedExampleConfig(); seeded != "" {
+			path = seeded
+			c.Seeded = true
 		}
 	}
 	if path != "" {
@@ -311,6 +330,8 @@ func (c *Config) applyEnv() {
 	str("CODECSMITH_WORKER_ID", &c.Worker.ID)
 	num("CODECSMITH_MAX_CONCURRENT", &c.Worker.MaxConcurrent)
 	str("CODECSMITH_TEMP_DIR", &c.Worker.TempDir)
+	str("CODECSMITH_TRASH_DIR", &c.Worker.TrashDir)
+	boolean("CODECSMITH_DRY_RUN", &c.Worker.DryRun)
 	str("CODECSMITH_ENCODER", &c.Encoder.Backend)
 	str("CODECSMITH_CODEC", &c.Encoder.Codec)
 	str("CODECSMITH_VAAPI_DEVICE", &c.Encoder.VAAPIDevice)
@@ -583,4 +604,25 @@ func redactDSN(dsn string) string {
 		return dsn
 	}
 	return dsn[:scheme+3] + "***" + dsn[at:]
+}
+
+// seedExampleConfig writes the bundled example into /config on first run so
+// a fresh container comes up with a working dashboard instead of exiting on
+// a missing config. Returns the path written, or "" if it did nothing.
+func seedExampleConfig() string {
+	const dest = "/config/config.yaml"
+	if st, err := os.Stat("/config"); err != nil || !st.IsDir() {
+		return ""
+	}
+	for _, ex := range []string{"/config.example.yaml", "config.example.yaml"} {
+		b, err := os.ReadFile(ex)
+		if err != nil {
+			continue
+		}
+		if err := os.WriteFile(dest, b, 0o644); err != nil {
+			return ""
+		}
+		return dest
+	}
+	return ""
 }

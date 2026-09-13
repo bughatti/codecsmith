@@ -476,6 +476,24 @@ func (w *Worker) runMaintenance(ctx context.Context) {
 	cutoff := time.Now().Add(-w.cfg.Worker.MetricsRetention)
 	_, _ = w.store.PruneMetrics(ctx, cutoff)
 	_, _ = w.store.PruneStorage(ctx, time.Now().Add(-90*24*time.Hour))
+	// Trashed originals past their retention.
+	if dir := w.cfg.Worker.TrashDir; dir != "" && w.cfg.Worker.TrashRetention > 0 {
+		cutoff := time.Now().Add(-w.cfg.Worker.TrashRetention)
+		removed := 0
+		_ = filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			if info.ModTime().Before(cutoff) && os.Remove(p) == nil {
+				removed++
+			}
+			return nil
+		})
+		if removed > 0 {
+			log.Info("pruned trashed originals", "count", removed, "older_than", w.cfg.Worker.TrashRetention.String())
+		}
+	}
+
 	// Leftover temp files from crashed runs.
 	if entries, err := os.ReadDir(w.cfg.Worker.TempDir); err == nil {
 		for _, e := range entries {

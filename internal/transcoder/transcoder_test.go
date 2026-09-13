@@ -162,6 +162,28 @@ func TestParseProbeDolbyVision(t *testing.T) {
 	}
 }
 
+func TestTrashPath(t *testing.T) {
+	cases := []struct{ trash, lib, file, want string }{
+		{"/config/trash", "/media/movies", "/media/movies/Heat (1995)/Heat.mkv", "/config/trash/Heat (1995)/Heat.mkv"},
+		{"/config/trash", "/media/shows", "/media/shows/Show/S01/e01.mkv", "/config/trash/Show/S01/e01.mkv"},
+		{"/t", "/media/movies", "/elsewhere/odd.mkv", "/t/odd.mkv"},
+	}
+	for _, c := range cases {
+		if got := TrashPath(c.trash, c.lib, c.file); got != c.want {
+			t.Errorf("TrashPath(%q,%q) = %q want %q", c.lib, c.file, got, c.want)
+		}
+	}
+	dir := t.TempDir()
+	p := filepath.Join(dir, "a.mkv")
+	if got := uniquePath(p); got != p {
+		t.Errorf("free path should be returned as-is: %s", got)
+	}
+	_ = os.WriteFile(p, []byte("x"), 0o644)
+	if got := uniquePath(p); got != filepath.Join(dir, "a.1.mkv") {
+		t.Errorf("taken path should get a counter, got %s", got)
+	}
+}
+
 func TestHardLinks(t *testing.T) {
 	dir := t.TempDir()
 	a := filepath.Join(dir, "a.mkv")

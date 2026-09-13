@@ -56,6 +56,9 @@ func main() {
 	// drop to PUID/PGID before anything else opens files.
 	if settings, ok := priv.FromEnv(); ok {
 		dirs := []string{cfg.DataDir, cfg.LogDir, cfg.Worker.TempDir}
+		if cfg.Worker.TrashDir != "" {
+			dirs = append(dirs, cfg.Worker.TrashDir)
+		}
 		if p := cfg.SQLitePath(); p != "" {
 			dirs = append(dirs, filepath.Dir(p))
 		}
@@ -69,6 +72,9 @@ func main() {
 	defer closeLog.Close()
 	log.Info("codecsmith starting", "version", version.String(), "mode", cfg.Mode, "config", cfg.Path,
 		"db", cfg.Database.Driver, "uid", os.Getuid())
+	if cfg.Seeded {
+		log.Warn("no config found: wrote the bundled example to /config/config.yaml — edit its libraries to match your media, then restart")
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

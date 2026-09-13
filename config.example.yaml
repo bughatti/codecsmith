@@ -28,6 +28,9 @@ worker:
   nice: 10                  # CPU priority for ffmpeg (0-19)
   threads: 0                # ffmpeg thread cap, 0 = default
   allow_hardlinked: false   # true processes files with >1 hard link (breaks seeding)
+  dry_run: false            # true encodes and measures but never replaces anything
+  trash_dir: ""             # e.g. /config/trash — keeps replaced originals instead of deleting
+  trash_retention: 336h     # how long trashed originals are kept (14 days)
 
 encoder:
   backend: auto             # auto | nvenc | qsv | vaapi | videotoolbox | software

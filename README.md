@@ -65,6 +65,30 @@ Typical savings on a home library, with the default profile:
   doubles disk usage instead of saving space.
 - **Never touches music, books, or photos.** Video files only.
 
+## Try it before you trust it
+
+Codecsmith replaces files in place, so it ships with two ways to stay safe
+while you decide whether you like what it does.
+
+**Dry run.** Set `dry_run: true` and it does the whole job except the last
+step: every file is really encoded, the result is really measured, and then
+the output is thrown away and the source left untouched. The dashboard shows
+exactly what your library would have saved, file by file, and the header says
+plainly that nothing is being changed. When the numbers convince you, turn it
+off and press **Requeue all** on the Skipped tab to run them for real.
+
+**A trash folder.** Set `trash_dir` and replaced originals are moved there,
+mirroring their folder layout, instead of being deleted. If an encode ever
+disappoints you, the original is one move away. They are pruned after
+`trash_retention` (14 days by default), so budget the disk space.
+
+```yaml
+worker:
+  dry_run: true
+  trash_dir: /config/trash
+  trash_retention: 336h
+```
+
 ## Quick start (Docker)
 
 ```sh

@@ -89,6 +89,7 @@ func (s *Server) Handler() http.Handler {
 			r.Post("/control/resume", s.resume)
 			r.Post("/control/scan", s.scanNow)
 			r.Post("/control/retry-failed", s.retryFailed)
+			r.Post("/control/requeue-skipped", s.requeueSkipped)
 		})
 
 		// webhooks (Sonarr/Radarr/anything): queue the file they just imported
@@ -226,6 +227,8 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 		"gpu":            gpu,
 		"last_scan":      lastScan,
 		"auth_required":  s.cfg.Web.APIKey != "",
+		"dry_run":        s.cfg.Worker.DryRun,
+		"trash_enabled":  s.cfg.Worker.TrashDir != "",
 		"database":       string(s.store.Driver()),
 		"uptime_seconds": int(time.Since(s.start).Seconds()),
 		"counts":         counts,
@@ -530,6 +533,24 @@ func (s *Server) retryFailed(w http.ResponseWriter, r *http.Request) {
 		limit = 25
 	}
 	n, err := s.store.RequeueFailed(r.Context(), limit)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	if s.nudge != nil {
+		s.nudge.Wake()
+	}
+	writeJSON(w, map[string]any{"ok": true, "requeued": n})
+}
+
+// requeueSkipped re-queues everything that was skipped, which is how you
+// act on a dry run once you are happy with the numbers.
+func (s *Server) requeueSkipped(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 || limit > 100000 {
+		limit = 10000
+	}
+	n, err := s.store.RequeueByStatus(r.Context(), []job.Status{job.StatusSkipped}, limit)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
