@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/config"
-	"github.com/bughatti/transcoder/internal/db"
-	"github.com/bughatti/transcoder/internal/encoder"
-	"github.com/bughatti/transcoder/internal/integrations"
-	"github.com/bughatti/transcoder/internal/job"
-	"github.com/bughatti/transcoder/internal/scanner"
-	"github.com/bughatti/transcoder/internal/transcoder"
+	"github.com/bughatti/codecsmith/internal/config"
+	"github.com/bughatti/codecsmith/internal/db"
+	"github.com/bughatti/codecsmith/internal/encoder"
+	"github.com/bughatti/codecsmith/internal/integrations"
+	"github.com/bughatti/codecsmith/internal/job"
+	"github.com/bughatti/codecsmith/internal/scanner"
+	"github.com/bughatti/codecsmith/internal/transcoder"
 )
 
 // State keys in system_state shared with the web process.

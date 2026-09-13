@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/config"
+	"github.com/bughatti/codecsmith/internal/config"
 )
 
 type fakeInfo struct {

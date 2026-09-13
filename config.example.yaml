@@ -1,26 +1,26 @@
-# Transcoder configuration.
+# Codecsmith configuration.
 # Copy to config.yaml and edit. Every value shown is the default unless noted.
-# Secrets can also come from the environment: TRANSCODER_DB_DSN,
-# TRANSCODER_API_KEY, SABNZBD_API_KEY, TRANSCODER_WEBHOOK_SECRET.
+# Secrets can also come from the environment: CODECSMITH_DB_DSN,
+# CODECSMITH_API_KEY, SABNZBD_API_KEY, CODECSMITH_WEBHOOK_SECRET.
 
 data_dir: /config/data      # SQLite database + state
-log_dir: /config/logs       # transcoder.log (rotated); "" disables the file
+log_dir: /config/logs       # codecsmith.log (rotated); "" disables the file
 log_level: info             # debug | info | warn | error
 
 database:
   driver: sqlite            # sqlite (zero setup) | postgres (multiple workers)
-  dsn: transcoder.db        # sqlite: file inside data_dir
-  # dsn: postgres://transcoder:password@db:5432/transcoder?sslmode=disable
+  dsn: codecsmith.db        # sqlite: file inside data_dir
+  # dsn: postgres://codecsmith:password@db:5432/codecsmith?sslmode=disable
 
 web:
   listen: 0.0.0.0:8090
-  title: Transcoder
+  title: Codecsmith
   api_key: ""               # set to require X-API-Key on every change
 
 worker:
   id: worker-1              # unique per worker when sharing a Postgres DB
   max_concurrent: 2         # simultaneous ffmpeg processes
-  temp_dir: /tmp/transcoder # outputs are written here first (tmpfs is ideal)
+  temp_dir: /tmp/codecsmith # outputs are written here first (tmpfs is ideal)
   scan_interval: 1h
   min_file_age: 5m          # ignore files modified more recently than this
   stale_after: 2h           # fail a job with no progress for this long

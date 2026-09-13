@@ -31,9 +31,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/config"
-	"github.com/bughatti/transcoder/internal/encoder"
-	"github.com/bughatti/transcoder/internal/job"
+	"github.com/bughatti/codecsmith/internal/config"
+	"github.com/bughatti/codecsmith/internal/encoder"
+	"github.com/bughatti/codecsmith/internal/job"
 )
 
 // ProgressFunc receives periodic updates. Returning false aborts the encode.

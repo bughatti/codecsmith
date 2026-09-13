@@ -13,10 +13,10 @@ import (
 )
 
 // FileName is the rotating log file name inside log_dir.
-const FileName = "transcoder.log"
+const FileName = "codecsmith.log"
 
 // Setup returns a logger writing to stdout and, when logDir is non-empty, to
-// logDir/transcoder.log with rotation (10 MiB x 5). The returned closer
+// logDir/codecsmith.log with rotation (10 MiB x 5). The returned closer
 // flushes the file writer.
 func Setup(component, level, logDir string) (*slog.Logger, io.Closer) {
 	lvl := parseLevel(level)

@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/db"
+	"github.com/bughatti/codecsmith/internal/db"
 )
 
 // -----------------------------------------------------------------------------

@@ -1,11 +1,11 @@
-// Package config loads the transcoder configuration from a YAML file with
+// Package config loads the codecsmith configuration from a YAML file with
 // environment-variable overrides for the values that are typically secrets
 // or differ per deployment (database DSN, API keys, listen address).
 //
 // Resolution order (later wins):
 //  1. built-in defaults
-//  2. config.yaml (path from --config, $TRANSCODER_CONFIG, or ./config.yaml)
-//  3. environment variables (TRANSCODER_*, SABNZBD_*)
+//  2. config.yaml (path from --config, $CODECSMITH_CONFIG, or ./config.yaml)
+//  3. environment variables (CODECSMITH_*, SABNZBD_*)
 package config
 
 import (
@@ -49,7 +49,7 @@ type Database struct {
 	// Driver is "sqlite" (default, zero-setup) or "postgres".
 	Driver string `yaml:"driver"`
 	// DSN is a file path for sqlite (relative to data_dir) or a
-	// postgres:// URL. Override with $TRANSCODER_DB_DSN.
+	// postgres:// URL. Override with $CODECSMITH_DB_DSN.
 	DSN string `yaml:"dsn"`
 }
 
@@ -184,12 +184,12 @@ func Defaults() *Config {
 		DataDir:  "data",
 		LogDir:   "logs",
 		LogLevel: "info",
-		Database: Database{Driver: "sqlite", DSN: "transcoder.db"},
-		Web:      Web{Listen: "0.0.0.0:8090", Title: "Transcoder"},
+		Database: Database{Driver: "sqlite", DSN: "codecsmith.db"},
+		Web:      Web{Listen: "0.0.0.0:8090", Title: "Codecsmith"},
 		Worker: Worker{
 			ID:               "worker-1",
 			MaxConcurrent:    2,
-			TempDir:          filepath.Join(os.TempDir(), "transcoder"),
+			TempDir:          filepath.Join(os.TempDir(), "codecsmith"),
 			ScanInterval:     time.Hour,
 			MinFileAge:       5 * time.Minute,
 			StaleAfter:       2 * time.Hour,
@@ -233,10 +233,10 @@ func Load(path, mode string) (*Config, error) {
 	c.Mode = mode
 
 	if path == "" {
-		path = os.Getenv("TRANSCODER_CONFIG")
+		path = os.Getenv("CODECSMITH_CONFIG")
 	}
 	if path == "" {
-		for _, cand := range []string{"config.yaml", "config.yml", "/config/config.yaml", "/etc/transcoder/config.yaml"} {
+		for _, cand := range []string{"config.yaml", "config.yml", "/config/config.yaml", "/etc/codecsmith/config.yaml"} {
 			if _, err := os.Stat(cand); err == nil {
 				path = cand
 				break
@@ -288,28 +288,28 @@ func (c *Config) applyEnv() {
 		}
 	}
 
-	str("TRANSCODER_DATA_DIR", &c.DataDir)
-	str("TRANSCODER_LOG_DIR", &c.LogDir)
-	str("TRANSCODER_LOG_LEVEL", &c.LogLevel)
+	str("CODECSMITH_DATA_DIR", &c.DataDir)
+	str("CODECSMITH_LOG_DIR", &c.LogDir)
+	str("CODECSMITH_LOG_LEVEL", &c.LogLevel)
 	str("LOG_LEVEL", &c.LogLevel)
-	str("TRANSCODER_DB_DRIVER", &c.Database.Driver)
-	str("TRANSCODER_DB_DSN", &c.Database.DSN)
-	str("TRANSCODER_WEB_LISTEN", &c.Web.Listen)
-	str("TRANSCODER_API_KEY", &c.Web.APIKey)
-	str("TRANSCODER_WORKER_ID", &c.Worker.ID)
-	num("TRANSCODER_MAX_CONCURRENT", &c.Worker.MaxConcurrent)
-	str("TRANSCODER_TEMP_DIR", &c.Worker.TempDir)
-	str("TRANSCODER_ENCODER", &c.Encoder.Backend)
-	str("TRANSCODER_CODEC", &c.Encoder.Codec)
-	str("TRANSCODER_VAAPI_DEVICE", &c.Encoder.VAAPIDevice)
+	str("CODECSMITH_DB_DRIVER", &c.Database.Driver)
+	str("CODECSMITH_DB_DSN", &c.Database.DSN)
+	str("CODECSMITH_WEB_LISTEN", &c.Web.Listen)
+	str("CODECSMITH_API_KEY", &c.Web.APIKey)
+	str("CODECSMITH_WORKER_ID", &c.Worker.ID)
+	num("CODECSMITH_MAX_CONCURRENT", &c.Worker.MaxConcurrent)
+	str("CODECSMITH_TEMP_DIR", &c.Worker.TempDir)
+	str("CODECSMITH_ENCODER", &c.Encoder.Backend)
+	str("CODECSMITH_CODEC", &c.Encoder.Codec)
+	str("CODECSMITH_VAAPI_DEVICE", &c.Encoder.VAAPIDevice)
 	boolean("SABNZBD_ENABLED", &c.Integrations.SABnzbd.Enabled)
 	str("SABNZBD_URL", &c.Integrations.SABnzbd.URL)
 	str("SABNZBD_API_KEY", &c.Integrations.SABnzbd.APIKey)
-	str("TRANSCODER_WEBHOOK_SECRET", &c.Integrations.WebhookSecret)
+	str("CODECSMITH_WEBHOOK_SECRET", &c.Integrations.WebhookSecret)
 
 	// Postgres DSN implies the postgres driver unless explicitly set.
 	if strings.HasPrefix(c.Database.DSN, "postgres://") || strings.HasPrefix(c.Database.DSN, "postgresql://") {
-		if os.Getenv("TRANSCODER_DB_DRIVER") == "" && c.Database.Driver == "sqlite" {
+		if os.Getenv("CODECSMITH_DB_DRIVER") == "" && c.Database.Driver == "sqlite" {
 			c.Database.Driver = "postgres"
 		}
 	}

@@ -45,7 +45,7 @@ func TestLoadAndMerge(t *testing.T) {
 	if c.Web.Listen != "127.0.0.1:9000" {
 		t.Errorf("listen = %s", c.Web.Listen)
 	}
-	if c.Database.Driver != "sqlite" || c.SQLitePath() != filepath.Join("data", "transcoder.db") {
+	if c.Database.Driver != "sqlite" || c.SQLitePath() != filepath.Join("data", "codecsmith.db") {
 		t.Errorf("sqlite defaults: %s %s", c.Database.Driver, c.SQLitePath())
 	}
 	anime := c.Profiles["anime"]
@@ -89,9 +89,9 @@ func TestLibraryFor(t *testing.T) {
 }
 
 func TestEnvOverrides(t *testing.T) {
-	t.Setenv("TRANSCODER_DB_DSN", "postgres://u:p@h/db")
-	t.Setenv("TRANSCODER_API_KEY", "secret")
-	t.Setenv("TRANSCODER_MAX_CONCURRENT", "7")
+	t.Setenv("CODECSMITH_DB_DSN", "postgres://u:p@h/db")
+	t.Setenv("CODECSMITH_API_KEY", "secret")
+	t.Setenv("CODECSMITH_MAX_CONCURRENT", "7")
 	c, err := Load(writeCfg(t, sample), "web")
 	if err != nil {
 		t.Fatal(err)

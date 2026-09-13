@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/job"
+	"github.com/bughatti/codecsmith/internal/job"
 )
 
 func openTest(t *testing.T) *Store {

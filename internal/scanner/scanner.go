@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/config"
-	"github.com/bughatti/transcoder/internal/db"
-	"github.com/bughatti/transcoder/internal/job"
-	"github.com/bughatti/transcoder/internal/transcoder"
+	"github.com/bughatti/codecsmith/internal/config"
+	"github.com/bughatti/codecsmith/internal/db"
+	"github.com/bughatti/codecsmith/internal/job"
+	"github.com/bughatti/codecsmith/internal/transcoder"
 )
 
 // VideoExtensions are the file types considered for transcoding.

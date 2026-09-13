@@ -1,11 +1,11 @@
-// Command transcoder is a single binary with four modes:
+// Command codecsmith is a single binary with four modes:
 //
-//	transcoder --mode=all      dashboard + worker in one process (default)
-//	transcoder --mode=web      dashboard/API only
-//	transcoder --mode=worker   scanning + encoding only
-//	transcoder --mode=migrate  apply database migrations and exit
-//	transcoder --version
-//	transcoder --healthcheck   (container HEALTHCHECK; no curl needed)
+//	codecsmith --mode=all      dashboard + worker in one process (default)
+//	codecsmith --mode=web      dashboard/API only
+//	codecsmith --mode=worker   scanning + encoding only
+//	codecsmith --mode=migrate  apply database migrations and exit
+//	codecsmith --version
+//	codecsmith --healthcheck   (container HEALTHCHECK; no curl needed)
 package main
 
 import (
@@ -21,18 +21,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bughatti/transcoder/internal/config"
-	"github.com/bughatti/transcoder/internal/db"
-	"github.com/bughatti/transcoder/internal/logger"
-	"github.com/bughatti/transcoder/internal/priv"
-	"github.com/bughatti/transcoder/internal/version"
-	"github.com/bughatti/transcoder/internal/web"
-	"github.com/bughatti/transcoder/internal/worker"
+	"github.com/bughatti/codecsmith/internal/config"
+	"github.com/bughatti/codecsmith/internal/db"
+	"github.com/bughatti/codecsmith/internal/logger"
+	"github.com/bughatti/codecsmith/internal/priv"
+	"github.com/bughatti/codecsmith/internal/version"
+	"github.com/bughatti/codecsmith/internal/web"
+	"github.com/bughatti/codecsmith/internal/worker"
 )
 
 func main() {
 	mode := flag.String("mode", "all", "run mode: all | web | worker | migrate")
-	cfgPath := flag.String("config", "", "path to config.yaml (default: ./config.yaml, $TRANSCODER_CONFIG)")
+	cfgPath := flag.String("config", "", "path to config.yaml (default: ./config.yaml, $CODECSMITH_CONFIG)")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	healthcheck := flag.Bool("healthcheck", false, "exit 0 if the local web server or worker is healthy (for container HEALTHCHECK)")
 	flag.Parse()
@@ -42,7 +42,7 @@ func main() {
 	}
 
 	if *showVersion {
-		fmt.Println("transcoder", version.String())
+		fmt.Println("codecsmith", version.String())
 		return
 	}
 
@@ -67,7 +67,7 @@ func main() {
 
 	log, closeLog := logger.Setup(cfg.Mode, cfg.LogLevel, cfg.LogDir)
 	defer closeLog.Close()
-	log.Info("transcoder starting", "version", version.String(), "mode", cfg.Mode, "config", cfg.Path,
+	log.Info("codecsmith starting", "version", version.String(), "mode", cfg.Mode, "config", cfg.Path,
 		"db", cfg.Database.Driver, "uid", os.Getuid())
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -143,7 +143,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "unknown --mode=%s (all | web | worker | migrate)\n", cfg.Mode)
 		os.Exit(2)
 	}
-	log.Info("transcoder stopped")
+	log.Info("codecsmith stopped")
 	os.Exit(exit)
 }
 

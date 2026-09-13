@@ -22,7 +22,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // postgres driver
 	_ "modernc.org/sqlite"             // sqlite driver
 
-	"github.com/bughatti/transcoder/internal/job"
+	"github.com/bughatti/codecsmith/internal/job"
 )
 
 //go:embed migrations/postgres/*.sql migrations/sqlite/*.sql

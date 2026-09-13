@@ -1,6 +1,6 @@
 // Package version holds build metadata injected at link time:
 //
-//	go build -ldflags "-X github.com/bughatti/transcoder/internal/version.Version=v1.2.3"
+//	go build -ldflags "-X github.com/bughatti/codecsmith/internal/version.Version=v1.2.3"
 package version
 
 var (

@@ -21,7 +21,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: go vet ./...
       - run: go test -race ./...
-      - run: CGO_ENABLED=0 go build -trimpath -o /dev/null ./cmd/transcoder
+      - run: CGO_ENABLED=0 go build -trimpath -o /dev/null ./cmd/codecsmith
 
   image:
     needs: test

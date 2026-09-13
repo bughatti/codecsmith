@@ -1,4 +1,4 @@
-module github.com/bughatti/transcoder
+module github.com/bughatti/codecsmith
 
 go 1.25.0
 

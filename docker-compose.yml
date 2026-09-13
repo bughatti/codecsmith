@@ -1,4 +1,4 @@
-# Transcoder — single container, SQLite, dashboard on :8090.
+# Codecsmith — single container, SQLite, dashboard on :8090.
 #
 #   mkdir -p config && cp config.example.yaml config/config.yaml   # edit libraries
 #   docker compose up -d
@@ -6,10 +6,10 @@
 # Pick ONE hardware block below (or none for software encoding).
 
 services:
-  transcoder:
-    image: ghcr.io/bughatti/transcoder:latest
+  codecsmith:
+    image: ghcr.io/bughatti/codecsmith:latest
     # build: .
-    container_name: transcoder
+    container_name: codecsmith
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -18,13 +18,13 @@ services:
       - PGID=1000
       # - PGIDS=44,109             # extra groups (video, render) for /dev/dri
       - TZ=UTC
-      # - TRANSCODER_API_KEY=change-me
+      # - CODECSMITH_API_KEY=change-me
     volumes:
       - ./config:/config
       - /path/to/movies:/media/movies
       - /path/to/shows:/media/shows
     tmpfs:
-      - /tmp/transcoder:size=8G    # in-progress outputs; size it to your largest file
+      - /tmp/codecsmith:size=8G    # in-progress outputs; size it to your largest file
 
     # --- NVIDIA (NVENC) — needs the NVIDIA Container Toolkit -------------
     # deploy:

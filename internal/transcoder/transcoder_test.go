@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bughatti/transcoder/internal/config"
+	"github.com/bughatti/codecsmith/internal/config"
 )
 
 func TestProgressParser(t *testing.T) {

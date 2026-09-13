@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Transcoder</title>
+<title>Codecsmith</title>
 <style>
 :root {
   --bg: #f3f4f6; --surface: #ffffff; --surface-2: #eaecf0; --border: #d9dde5;
@@ -164,7 +164,7 @@ dialog p.hint { margin: 0; color: var(--muted); font-size: 12px; }
 <div class="wrap">
 
 <header class="top">
-  <div class="brand"><h1 id="title">Transcoder</h1><span class="ver" id="version"></span></div>
+  <div class="brand"><h1 id="title">Codecsmith</h1><span class="ver" id="version"></span></div>
   <span class="pill off" id="workerPill"><span class="dot"></span><span id="workerText">connecting…</span></span>
   <span class="chip" id="encChip" title="active encoder backend">—</span>
   <span class="chip" id="dbChip" title="database">—</span>
@@ -271,7 +271,7 @@ dialog p.hint { margin: 0; color: var(--muted); font-size: 12px; }
 (() => {
 const $ = (id) => document.getElementById(id);
 const state = { status: null, recentTab: 'completed', key: '', theme: '' };
-try { state.key = localStorage.getItem('transcoder.apiKey') || ''; state.theme = localStorage.getItem('transcoder.theme') || ''; } catch {}
+try { state.key = localStorage.getItem('codecsmith.apiKey') || ''; state.theme = localStorage.getItem('codecsmith.theme') || ''; } catch {}
 if (state.theme) document.documentElement.dataset.theme = state.theme;
 
 // ---------- helpers ----------
@@ -316,8 +316,8 @@ const post = (p, body) => api(p, { method: 'POST', body: body ? JSON.stringify(b
 // ---------- rendering ----------
 function renderStatus(s) {
   state.status = s;
-  document.title = s.title || 'Transcoder';
-  $('title').textContent = s.title || 'Transcoder';
+  document.title = s.title || 'Codecsmith';
+  $('title').textContent = s.title || 'Codecsmith';
   $('version').textContent = s.version && s.version !== 'dev' ? s.version : '';
   const pill = $('workerPill');
   pill.className = 'pill ' + (!s.worker_online ? 'off' : s.paused ? 'paused' : 'on');
@@ -480,7 +480,7 @@ async function refreshFast() {
     const q = (status.counts.queued || 0) + (status.counts.interrupted || 0);
     $('queueCount').textContent = q > queue.length ? `showing ${queue.length} of ${q}` : (q || '');
     showErr('');
-  } catch (e) { showErr('Cannot reach the transcoder: ' + e.message); }
+  } catch (e) { showErr('Cannot reach Codecsmith: ' + e.message); }
 }
 async function refreshRecent() {
   try { renderList($('recent'), await api(`/api/jobs?status=${state.recentTab}&limit=30`), 'recent', 'No finished jobs yet.'); } catch {}
@@ -509,11 +509,11 @@ $('addForm').addEventListener('submit', async (ev) => {
 });
 $('keyBtn').addEventListener('click', () => { $('keyInput').value = state.key; $('keyDlg').showModal(); });
 $('keyCancel').addEventListener('click', () => $('keyDlg').close());
-$('keyForm').addEventListener('submit', (ev) => { ev.preventDefault(); state.key = $('keyInput').value; try { localStorage.setItem('transcoder.apiKey', state.key); } catch {} $('keyDlg').close(); toast('Key saved'); });
+$('keyForm').addEventListener('submit', (ev) => { ev.preventDefault(); state.key = $('keyInput').value; try { localStorage.setItem('codecsmith.apiKey', state.key); } catch {} $('keyDlg').close(); toast('Key saved'); });
 $('themeBtn').addEventListener('click', () => {
   const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = next; try { localStorage.setItem('transcoder.theme', next); } catch {}
+  document.documentElement.dataset.theme = next; try { localStorage.setItem('codecsmith.theme', next); } catch {}
 });
 $('logRefresh').addEventListener('click', refreshLog);
 $('recentTabs').addEventListener('click', (ev) => {

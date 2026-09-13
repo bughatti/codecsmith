@@ -1,6 +1,6 @@
-# Transcoder
+# Codecsmith
 
-**One job: make large video files as small as possible while they still look good.**
+**Codecsmith has one job: make large video files as small as possible while they still look good.**
 
 This is not a general-purpose transcoder. There is no per-file preset picker,
 no resolution ladder, no format conversion menu. You point it at your movie
@@ -59,10 +59,10 @@ Typical savings on a home library, with the default profile:
 ## Quick start (Docker)
 
 ```sh
-mkdir transcoder && cd transcoder
-curl -O https://raw.githubusercontent.com/bughatti/transcoder/main/docker-compose.yml
+mkdir codecsmith && cd codecsmith
+curl -O https://raw.githubusercontent.com/bughatti/codecsmith/main/docker-compose.yml
 mkdir config
-curl -o config/config.yaml https://raw.githubusercontent.com/bughatti/transcoder/main/config.example.yaml
+curl -o config/config.yaml https://raw.githubusercontent.com/bughatti/codecsmith/main/config.example.yaml
 # edit docker-compose.yml : media mounts, PUID/PGID, and one hardware block
 # edit config/config.yaml : your libraries, paths as seen inside the container
 docker compose up -d
@@ -95,9 +95,9 @@ Get the group ids with `getent group render video` on the host.
 ### Without Docker
 
 ```sh
-go install github.com/bughatti/transcoder/cmd/transcoder@latest
+go install github.com/bughatti/codecsmith/cmd/codecsmith@latest
 cp config.example.yaml config.yaml   # edit
-transcoder --config config.yaml
+codecsmith --config config.yaml
 ```
 
 ffmpeg and ffprobe must be on `PATH` with the encoders you intend to use.
@@ -160,12 +160,12 @@ The two knobs worth understanding:
   several times realtime and produces noticeably smaller files than `fast`.
 
 Secrets can come from the environment instead of the file:
-`TRANSCODER_DB_DSN`, `TRANSCODER_API_KEY`, `SABNZBD_API_KEY`,
-`TRANSCODER_WEBHOOK_SECRET`.
+`CODECSMITH_DB_DSN`, `CODECSMITH_API_KEY`, `SABNZBD_API_KEY`,
+`CODECSMITH_WEBHOOK_SECRET`.
 
 ### Securing the dashboard
 
-Set `web.api_key` (or `TRANSCODER_API_KEY`). Reads stay open; every change
+Set `web.api_key` (or `CODECSMITH_API_KEY`). Reads stay open; every change
 (pause, cancel, retry, queue) needs the key as an `X-API-Key` header or
 `?api_key=`. The dashboard asks once and keeps it in the browser. Webhooks
 use `integrations.webhook_secret`, falling back to the API key.
@@ -174,19 +174,19 @@ use `integrations.webhook_secret`, falling back to the API key.
 
 Settings → Connect → Webhook:
 
-- URL: `http://transcoder:8090/api/webhook/sonarr` (or `/radarr`), add
+- URL: `http://codecsmith:8090/api/webhook/sonarr` (or `/radarr`), add
   `?key=YOUR_KEY` if a key is set
 - Triggers: **On Import** and **On Upgrade**
 
-The path in the payload must be inside a configured library as the
-transcoder sees it, so mount media at the same paths in both containers.
+The path in the payload must be inside a configured library as
+Codecsmith sees it, so mount media at the same paths in both containers.
 
 ### Postgres and several workers
 
 ```yaml
 database:
   driver: postgres
-  dsn: postgres://transcoder:pw@db:5432/transcoder?sslmode=disable
+  dsn: postgres://codecsmith:pw@db:5432/codecsmith?sslmode=disable
 ```
 
 Run one container with `--mode=web` and any number with `--mode=worker`,
@@ -252,8 +252,8 @@ scan ──▶ jobs table ──▶ dispatcher ──▶ ffmpeg (hw decode → h
 
 ```sh
 go test ./...
-go run ./cmd/transcoder --config config.yaml
-docker build -t transcoder .
+go run ./cmd/codecsmith --config config.yaml
+docker build -t codecsmith .
 ```
 
 Tests use an in-process SQLite database; nothing external is required.

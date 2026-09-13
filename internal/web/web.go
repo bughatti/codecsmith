@@ -20,14 +20,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/bughatti/transcoder/internal/config"
-	"github.com/bughatti/transcoder/internal/db"
-	"github.com/bughatti/transcoder/internal/job"
-	"github.com/bughatti/transcoder/internal/logger"
-	"github.com/bughatti/transcoder/internal/scanner"
-	"github.com/bughatti/transcoder/internal/transcoder"
-	"github.com/bughatti/transcoder/internal/version"
-	"github.com/bughatti/transcoder/internal/worker"
+	"github.com/bughatti/codecsmith/internal/config"
+	"github.com/bughatti/codecsmith/internal/db"
+	"github.com/bughatti/codecsmith/internal/job"
+	"github.com/bughatti/codecsmith/internal/logger"
+	"github.com/bughatti/codecsmith/internal/scanner"
+	"github.com/bughatti/codecsmith/internal/transcoder"
+	"github.com/bughatti/codecsmith/internal/version"
+	"github.com/bughatti/codecsmith/internal/worker"
 )
 
 //go:embed templates/index.html

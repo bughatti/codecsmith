@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 #
-# Build:   docker build -t transcoder .
+# Build:   docker build -t codecsmith .
 # Run:     see docker-compose.yml
 #
 # One image serves every encoder backend. Hardware access comes from the
@@ -19,8 +19,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath \
-      -ldflags="-s -w -X github.com/bughatti/transcoder/internal/version.Version=$VERSION -X github.com/bughatti/transcoder/internal/version.Commit=$COMMIT -X github.com/bughatti/transcoder/internal/version.Date=$DATE" \
-      -o /out/transcoder ./cmd/transcoder
+      -ldflags="-s -w -X github.com/bughatti/codecsmith/internal/version.Version=$VERSION -X github.com/bughatti/codecsmith/internal/version.Commit=$COMMIT -X github.com/bughatti/codecsmith/internal/version.Date=$DATE" \
+      -o /out/codecsmith ./cmd/codecsmith
 
 FROM ubuntu:24.04
 ARG TARGETARCH
@@ -41,19 +41,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # NVIDIA runtime capability hints (ignored on hosts without the runtime).
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
-    TRANSCODER_CONFIG=/config/config.yaml \
-    TRANSCODER_DATA_DIR=/config/data \
-    TRANSCODER_LOG_DIR=/config/logs \
-    TRANSCODER_TEMP_DIR=/tmp/transcoder
+    CODECSMITH_CONFIG=/config/config.yaml \
+    CODECSMITH_DATA_DIR=/config/data \
+    CODECSMITH_LOG_DIR=/config/logs \
+    CODECSMITH_TEMP_DIR=/tmp/codecsmith
 
-COPY --from=builder /out/transcoder /usr/local/bin/transcoder
+COPY --from=builder /out/codecsmith /usr/local/bin/codecsmith
 COPY config.example.yaml /config.example.yaml
 
 VOLUME ["/config"]
 EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=8s --start-period=40s \
-    CMD ["/usr/local/bin/transcoder", "--healthcheck"]
+    CMD ["/usr/local/bin/codecsmith", "--healthcheck"]
 
 # Starts as root, drops to PUID/PGID in-process (see internal/priv).
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/transcoder"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/codecsmith"]
 CMD ["--mode=all"]

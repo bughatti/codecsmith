@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bughatti/transcoder/internal/config"
-	"github.com/bughatti/transcoder/internal/db"
+	"github.com/bughatti/codecsmith/internal/config"
+	"github.com/bughatti/codecsmith/internal/db"
 )
 
 type nudge struct{ woke, scanned int }
@@ -79,7 +79,7 @@ func TestDashboardAndStatus(t *testing.T) {
 	}
 	body, _ := io.ReadAll(r.Body)
 	r.Body.Close()
-	if r.StatusCode != 200 || !strings.Contains(string(body), "<title>Transcoder</title>") {
+	if r.StatusCode != 200 || !strings.Contains(string(body), "<title>Codecsmith</title>") {
 		t.Fatalf("dashboard: %d", r.StatusCode)
 	}
 	if strings.Contains(string(body), "cdn.") || strings.Contains(string(body), "http://") {
