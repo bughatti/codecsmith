@@ -27,6 +27,7 @@ worker:
   gpu_health_check: true    # periodic null-frame encode; exits on repeated failure
   nice: 10                  # CPU priority for ffmpeg (0-19)
   threads: 0                # ffmpeg thread cap, 0 = default
+  allow_hardlinked: false   # true processes files with >1 hard link (breaks seeding)
 
 encoder:
   backend: auto             # auto | nvenc | qsv | vaapi | videotoolbox | software
@@ -59,6 +60,7 @@ profiles:
     size_limit_gb: 5        # same-codec files only re-encode above this size (0 = never)
     skip_below_kbps: 0      # skip sources already under this bitrate (0 = off)
     skip_codecs: [av1]      # source codecs never converted (would not shrink)
+    allow_dolby_vision: false  # true re-encodes DV sources; the DV layer is lost either way
     max_bitrate: ""         # e.g. 4M
     tune: ""                # animation | film | grain (where the backend supports it)
     audio_codec: aac        # copy | aac | opus

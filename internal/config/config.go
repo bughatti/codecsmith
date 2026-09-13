@@ -89,6 +89,11 @@ type Worker struct {
 	Nice int `yaml:"nice"`
 	// Threads limits ffmpeg's decoder/filter threads (0 = ffmpeg default).
 	Threads int `yaml:"threads"`
+	// AllowHardlinked processes files that have more than one hard link.
+	// Off by default: replacing such a file breaks the link, so a torrent
+	// client still seeding the other copy keeps the original on disk and the
+	// library uses twice the space.
+	AllowHardlinked bool `yaml:"allow_hardlinked"`
 }
 
 // Encoder selects the hardware/software backend.
@@ -143,6 +148,13 @@ type Profile struct {
 	// SkipBelowKbps skips sources whose overall bitrate is already under
 	// this value (they rarely shrink). 0 = disabled.
 	SkipBelowKbps int `yaml:"skip_below_kbps"`
+	// AllowDolbyVision re-encodes Dolby Vision sources anyway. Off by
+	// default: the DV enhancement data lives in the video bitstream and
+	// cannot survive a re-encode, yet the DV label is copied to the output,
+	// leaving a file that claims Dolby Vision with nothing behind it. Such a
+	// file can tone-map wrongly on a DV display. HDR10 is unaffected and is
+	// always preserved.
+	AllowDolbyVision bool `yaml:"allow_dolby_vision"`
 	// SkipCodecs are source codecs left alone even though they differ from
 	// the target, because re-encoding them would not save space (an AV1
 	// source converted to HEVC almost always grows). Default [av1].
@@ -374,6 +386,9 @@ func mergeProfile(base, over Profile) Profile {
 	}
 	if over.SkipCodecs != nil {
 		out.SkipCodecs = over.SkipCodecs
+	}
+	if over.AllowDolbyVision {
+		out.AllowDolbyVision = true
 	}
 	if over.SubtitleLanguages != nil {
 		out.SubtitleLanguages = over.SubtitleLanguages

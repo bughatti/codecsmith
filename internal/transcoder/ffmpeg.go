@@ -118,6 +118,14 @@ func (t *Transcoder) Transcode(ctx context.Context, j *job.Job, progress Progres
 	}
 	origSize := info.Size()
 
+	// A file with more than one hard link is almost always seeded by a
+	// torrent client from a second path. Replacing it breaks the link and
+	// costs disk space instead of saving it.
+	if n := HardLinks(info); n > 1 && !t.cfg.Worker.AllowHardlinked {
+		msg := fmt.Sprintf("kept original: file has %d hard links (still seeding?); set allow_hardlinked to process it", n)
+		return &Result{Status: job.StatusSkipped, NewSize: origSize, Message: msg}, nil
+	}
+
 	mi, err := Probe(ctx, t.cfg.Encoder.FFprobe, j.FilePath)
 	if err != nil {
 		return &Result{Status: job.StatusFailed}, fmt.Errorf("ffprobe: %w", err)
@@ -238,6 +246,12 @@ func (t *Transcoder) Transcode(ctx context.Context, j *job.Job, progress Progres
 
 // skipReason returns "" when the file should be encoded.
 func skipReason(mi *MediaInfo, size int64, target string, prof config.Profile) string {
+	// Dolby Vision first: the DV layer cannot survive any re-encode, and
+	// ffmpeg copies the DV label to the output regardless, which produces a
+	// file that claims Dolby Vision with no data behind it.
+	if mi.DolbyVision && !prof.AllowDolbyVision {
+		return "Dolby Vision source: re-encoding would strip the DV layer and leave a file that falsely claims DV (set allow_dolby_vision: true to override)"
+	}
 	if mi.VideoCodec == target {
 		limit := int64(prof.SizeLimitGB * (1 << 30))
 		if limit <= 0 || size <= limit {
@@ -461,6 +475,15 @@ func humanBytes(n int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.2f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
+}
+
+// HardLinks reports how many directory entries point at this file's inode.
+// Returns 1 when the platform does not report it.
+func HardLinks(info os.FileInfo) uint64 {
+	if st, ok := info.Sys().(*syscall.Stat_t); ok && st.Nlink > 0 {
+		return uint64(st.Nlink)
+	}
+	return 1
 }
 
 // MoveFile renames src to dst, falling back to copy+fsync+delete when the

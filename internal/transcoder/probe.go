@@ -23,12 +23,16 @@ type Stream struct {
 // MediaInfo is what the pipeline needs to know about a source file.
 type MediaInfo struct {
 	VideoCodec string
-	Duration   float64 // seconds
-	BitrateBps int64   // container-level overall bitrate
-	Width      int
-	Height     int
-	Audio      []Stream
-	Subtitles  []Stream
+	// DolbyVision is true when the video stream carries a Dolby Vision
+	// configuration record. Such a source must not be re-encoded: the RPU
+	// data in the bitstream is lost while the label survives.
+	DolbyVision bool
+	Duration    float64 // seconds
+	BitrateBps  int64   // container-level overall bitrate
+	Width       int
+	Height      int
+	Audio       []Stream
+	Subtitles   []Stream
 }
 
 // Probe runs ffprobe once and extracts everything the pipeline needs.
@@ -36,7 +40,7 @@ func Probe(ctx context.Context, ffprobe, input string) (*MediaInfo, error) {
 	pctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(pctx, ffprobe, "-v", "error",
-		"-show_entries", "format=duration,bit_rate:stream=index,codec_type,codec_name,width,height:stream_tags=language,title:stream_disposition=default,forced",
+		"-show_entries", "format=duration,bit_rate:stream=index,codec_type,codec_name,width,height:stream_tags=language,title:stream_disposition=default,forced:stream_side_data=side_data_type",
 		"-of", "json", input)
 	out, err := cmd.Output()
 	if err != nil {
@@ -65,6 +69,9 @@ func parseProbe(out []byte) (*MediaInfo, error) {
 				Default int `json:"default"`
 				Forced  int `json:"forced"`
 			} `json:"disposition"`
+			SideData []struct {
+				Type string `json:"side_data_type"`
+			} `json:"side_data_list"`
 		} `json:"streams"`
 	}
 	if err := json.Unmarshal(out, &parsed); err != nil {
@@ -87,6 +94,11 @@ func parseProbe(out []byte) (*MediaInfo, error) {
 			if mi.VideoCodec == "" {
 				mi.VideoCodec = s.CodecName
 				mi.Width, mi.Height = s.Width, s.Height
+			}
+			for _, sd := range s.SideData {
+				if isDolbyVision(sd.Type) {
+					mi.DolbyVision = true
+				}
 			}
 		case "audio":
 			mi.Audio = append(mi.Audio, st)
@@ -128,6 +140,12 @@ func ProbeDuration(ctx context.Context, ffprobe, input string) float64 {
 	}
 	d, _ := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
 	return d
+}
+
+// isDolbyVision matches ffprobe's names for the DV configuration record.
+func isDolbyVision(sideDataType string) bool {
+	t := strings.ToLower(sideDataType)
+	return strings.Contains(t, "dovi") || strings.Contains(t, "dolby vision")
 }
 
 // Image codecs that sometimes show up as the first "video" stream (cover

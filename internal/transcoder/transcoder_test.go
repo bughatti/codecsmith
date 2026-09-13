@@ -134,6 +134,51 @@ func TestSkipReason(t *testing.T) {
 	if r := skipReason(&MediaInfo{VideoCodec: "av1", BitrateBps: 9_000_000}, gb, "hevc", config.Profile{SkipCodecs: []string{"av1"}}); r == "" {
 		t.Error("av1 source must be skipped for an hevc target")
 	}
+	dv := &MediaInfo{VideoCodec: "hevc", DolbyVision: true, BitrateBps: 60_000_000}
+	if r := skipReason(dv, 50*gb, "hevc", config.Profile{SizeLimitGB: 10}); r == "" {
+		t.Error("Dolby Vision source must be skipped by default")
+	}
+	if r := skipReason(dv, 50*gb, "hevc", config.Profile{SizeLimitGB: 10, AllowDolbyVision: true}); r != "" {
+		t.Errorf("allow_dolby_vision should let it through, got %q", r)
+	}
+}
+
+func TestParseProbeDolbyVision(t *testing.T) {
+	withDV := `{"streams":[{"index":0,"codec_type":"video","codec_name":"hevc",
+	 "side_data_list":[{"side_data_type":"DOVI configuration record"}]}],"format":{"duration":"10"}}`
+	mi, err := parseProbe([]byte(withDV))
+	if err != nil || !mi.DolbyVision {
+		t.Errorf("DV not detected: %+v %v", mi, err)
+	}
+	plain := `{"streams":[{"index":0,"codec_type":"video","codec_name":"hevc",
+	 "side_data_list":[{"side_data_type":"Content light level metadata"}]}],"format":{"duration":"10"}}`
+	mi, _ = parseProbe([]byte(plain))
+	if mi.DolbyVision {
+		t.Error("HDR10 side data must not be read as Dolby Vision")
+	}
+	mi, _ = parseProbe([]byte(`{"streams":[{"index":0,"codec_type":"video","codec_name":"h264"}],"format":{}}`))
+	if mi.DolbyVision {
+		t.Error("no side data means no DV")
+	}
+}
+
+func TestHardLinks(t *testing.T) {
+	dir := t.TempDir()
+	a := filepath.Join(dir, "a.mkv")
+	if err := os.WriteFile(a, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	info, _ := os.Stat(a)
+	if n := HardLinks(info); n != 1 {
+		t.Errorf("fresh file has %d links, want 1", n)
+	}
+	if err := os.Link(a, filepath.Join(dir, "seeding.mkv")); err != nil {
+		t.Skipf("hard links unsupported here: %v", err)
+	}
+	info, _ = os.Stat(a)
+	if n := HardLinks(info); n != 2 {
+		t.Errorf("linked file has %d links, want 2", n)
+	}
 }
 
 func TestParseProbe(t *testing.T) {

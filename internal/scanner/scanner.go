@@ -143,6 +143,10 @@ func (s *Scanner) scanLibrary(ctx context.Context, lib config.Library, known map
 		if _, exists := known[path]; exists {
 			return nil
 		}
+		if !s.cfg.Worker.AllowHardlinked && transcoder.HardLinks(info) > 1 {
+			log.Debug("skipping hardlinked file (likely seeding)", "path", path)
+			return nil
+		}
 		seen++
 
 		key := probeKey{path, info.Size(), info.ModTime().UnixNano()}

@@ -54,6 +54,15 @@ Typical savings on a home library, with the default profile:
   guessing. A mislabeled release costs you some space, not the English audio.
 - **Never changes resolution or frame rate.** Size comes from a better codec
   and constant-quality encoding, not from throwing away pixels.
+- **Never re-encodes Dolby Vision.** The DV enhancement data lives inside the
+  video bitstream and cannot survive any re-encode, while the DV label gets
+  copied to the output regardless. That combination produces a file claiming
+  Dolby Vision with nothing behind it, which can tone-map wrongly on a DV
+  display, so DV sources are left alone. Plain HDR10 is fully supported: 10-bit,
+  PQ, and BT.2020 are preserved.
+- **Never touches a file with more than one hard link.** Those are usually
+  still being seeded from a download folder. Replacing one breaks the link and
+  doubles disk usage instead of saving space.
 - **Never touches music, books, or photos.** Video files only.
 
 ## Quick start (Docker)
@@ -91,6 +100,11 @@ these.
 | **Apple** (VideoToolbox) | run the binary directly on macOS | not available inside Docker. |
 
 Get the group ids with `getent group render video` on the host.
+
+**What has actually been tested:** NVIDIA NVENC and CPU encoding are verified
+end to end against real libraries. The AMD, Intel, and Apple paths are
+implemented and their drivers ship in the image, but nobody has run them on
+that hardware yet. Reports from those setups are welcome.
 
 ### Without Docker
 
