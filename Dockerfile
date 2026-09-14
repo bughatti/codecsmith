@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -ldflags="-s -w -X github.com/bughatti/codecsmith/internal/version.Version=$VERSION -X github.com/bughatti/codecsmith/internal/version.Commit=$COMMIT -X github.com/bughatti/codecsmith/internal/version.Date=$DATE" \
       -o /out/codecsmith ./cmd/codecsmith
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 # Intel's media driver (QSV/VAAPI on iHD) only exists for amd64; arm64 gets
