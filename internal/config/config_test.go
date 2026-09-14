@@ -87,6 +87,13 @@ func TestLibraryFor(t *testing.T) {
 	if _, ok := c.LibraryFor("/media/moviesx/x.mkv"); ok {
 		t.Error("prefix without separator must not match")
 	}
+	// The web API's add-job endpoint relies on this check to keep request
+	// paths inside the libraries, so ".." must never climb out of one.
+	for _, p := range []string{"/media/movies/../other/x.mkv", "/media/movies/../../etc/passwd", "/media/anime/.."} {
+		if l, ok := c.LibraryFor(p); ok && l.Path != "/media" {
+			t.Errorf("%s escaped into library %q", p, l.Name)
+		}
+	}
 }
 
 func TestDryRunAndTrash(t *testing.T) {
