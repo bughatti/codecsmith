@@ -1,0 +1,26 @@
+# Dependabot keeps dependencies current. Security fixes are opened as soon as an
+# advisory is published regardless of this schedule; this file adds routine
+# version updates, grouped so they arrive as a few pull requests, not dozens.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
