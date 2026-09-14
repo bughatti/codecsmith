@@ -8,7 +8,7 @@
 # Intel/AMD); the image itself only needs ffmpeg with those encoders
 # compiled in, which Ubuntu's ffmpeg package provides.
 
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.8-bookworm AS builder
 ARG TARGETOS TARGETARCH VERSION=dev COMMIT= DATE=
 WORKDIR /src
 COPY go.mod go.sum ./
