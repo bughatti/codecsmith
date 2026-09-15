@@ -298,4 +298,4 @@ Tests use an in-process SQLite database; nothing external is required.
 
 ## License
 
-MIT
+Licensed under the **GNU Affero General Public License v3.0** — see [LICENSE](LICENSE). You're free to use, modify, and self-host it, but if you distribute it or run a modified version as a network service, you must make your source available under the same license.
