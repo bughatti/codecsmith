@@ -154,6 +154,11 @@ type Profile struct {
 	Tune string `yaml:"tune"`
 	// MaxBitrate caps the encoder (e.g. "4M"). Empty = unconstrained.
 	MaxBitrate string `yaml:"max_bitrate"`
+	// AQ turns NVENC spatial + temporal adaptive quantization on (default). Off, files at the same quality value
+	// come out ~30% smaller with the same VMAF and slightly more banding (CAMBI +0.1-0.5), and two encodes can run
+	// side by side on a GPU with two encoder engines (AQ is their shared bottleneck). Lower quality by ~2 to spend
+	// the saving on picture quality instead. NVENC only.
+	AQ *bool `yaml:"aq"`
 	// SizeLimitGB: files already in the target codec are only re-encoded
 	// when larger than this. 0 = never re-encode same-codec files.
 	SizeLimitGB float64 `yaml:"size_limit_gb"`
@@ -398,6 +403,9 @@ func mergeProfile(base, over Profile) Profile {
 	}
 	if over.Tune != "" {
 		out.Tune = over.Tune
+	}
+	if over.AQ != nil {
+		out.AQ = over.AQ
 	}
 	if over.MaxBitrate != "" {
 		out.MaxBitrate = over.MaxBitrate

@@ -66,6 +66,7 @@ profiles:
     allow_dolby_vision: false  # true re-encodes DV sources; the DV layer is lost either way
     max_bitrate: ""         # e.g. 4M
     tune: ""                # animation | film | grain (where the backend supports it)
+    aq: true                # NVENC adaptive quantization; false = ~30% smaller at the same quality value, slightly more banding (lower quality by ~2 to trade the saving for picture)
     audio_codec: aac        # copy | aac | opus
     audio_bitrate: 192k
     audio_channels: 2       # 0 = keep source layout

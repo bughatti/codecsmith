@@ -169,7 +169,7 @@ func (t *Transcoder) Transcode(ctx context.Context, j *job.Job, progress Progres
 		enc:        t.enc,
 		input:      j.FilePath,
 		output:     tempFile,
-		params:     encoder.Params{Codec: target, Quality: quality, Speed: prof.Speed, Tune: prof.Tune, MaxBitrate: prof.MaxBitrate, Threads: t.cfg.Worker.Threads},
+		params:     encoder.Params{Codec: target, Quality: quality, Speed: prof.Speed, Tune: prof.Tune, MaxBitrate: prof.MaxBitrate, Threads: t.cfg.Worker.Threads, NoAQ: prof.AQ != nil && !*prof.AQ},
 		audioMaps:  audioMaps,
 		subMaps:    subMaps,
 		subConvert: subConvert,

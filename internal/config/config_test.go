@@ -164,3 +164,14 @@ profiles:
 		t.Fatalf("web mode without libraries should load: %v", err)
 	}
 }
+
+func TestProfileAQMerge(t *testing.T) {
+	off := false
+	base := Profile{Quality: 26}
+	if got := mergeProfile(base, Profile{}); got.AQ != nil {
+		t.Error("AQ unset stays unset (= on)")
+	}
+	if got := mergeProfile(base, Profile{AQ: &off}); got.AQ == nil || *got.AQ {
+		t.Error("aq: false must survive the merge")
+	}
+}

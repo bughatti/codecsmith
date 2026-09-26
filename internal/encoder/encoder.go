@@ -39,6 +39,7 @@ type Params struct {
 	Speed      string // fast | medium | slow
 	Tune       string // "" | animation | film | grain
 	MaxBitrate string // e.g. "4M" ("" = unconstrained)
+	NoAQ       bool   // NVENC: leave spatial/temporal adaptive quantization off
 	Threads    int    // decoder/software-encoder threads (0 = default)
 }
 
@@ -222,8 +223,9 @@ func (n *nvenc) VideoArgs(p Params) []string {
 		"-rc", "vbr",
 		"-cq", strconv.Itoa(p.Quality),
 		"-b:v", "0",
-		"-spatial-aq", "1",
-		"-temporal-aq", "1",
+	}
+	if !p.NoAQ {
+		args = append(args, "-spatial-aq", "1", "-temporal-aq", "1")
 	}
 	if p.MaxBitrate != "" {
 		args = append(args, "-maxrate", p.MaxBitrate, "-bufsize", doubleRate(p.MaxBitrate))

@@ -93,3 +93,15 @@ func TestParseRate(t *testing.T) {
 		t.Error("rate helpers")
 	}
 }
+
+func TestNVENCAQ(t *testing.T) {
+	n := &nvenc{avail: map[string]bool{"hevc_nvenc": true}}
+	on := strings.Join(n.VideoArgs(Params{Codec: HEVC, Quality: 26, Speed: "slow"}), " ")
+	off := strings.Join(n.VideoArgs(Params{Codec: HEVC, Quality: 24, Speed: "slow", NoAQ: true}), " ")
+	if !strings.Contains(on, "-spatial-aq 1 -temporal-aq 1") {
+		t.Errorf("AQ is on by default: %s", on)
+	}
+	if strings.Contains(off, "-aq") || !strings.Contains(off, "-cq 24") {
+		t.Errorf("NoAQ must drop both AQ flags: %s", off)
+	}
+}
