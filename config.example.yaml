@@ -109,4 +109,9 @@ integrations:
     enabled: false
     url: http://sabnzbd:8080
     api_key: ""
+  plex:                     # re-analyze each replaced file so Plex drops the old codec info
+    enabled: false
+    url: http://plex:32400
+    token: ""               # X-Plex-Token (or PLEX_TOKEN)
+    path_map: {}            # Codecsmith path → Plex path, only if they differ
   webhook_secret: ""        # protects /api/webhook/* (falls back to web.api_key)

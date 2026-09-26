@@ -199,7 +199,7 @@ The two knobs worth understanding:
 
 Secrets can come from the environment instead of the file:
 `CODECSMITH_DB_DSN`, `CODECSMITH_API_KEY`, `SABNZBD_API_KEY`,
-`CODECSMITH_WEBHOOK_SECRET`.
+`CODECSMITH_WEBHOOK_SECRET`, `PLEX_TOKEN`.
 
 ### Securing the dashboard
 
@@ -218,6 +218,26 @@ Settings → Connect → Webhook:
 
 The path in the payload must be inside a configured library as
 Codecsmith sees it, so mount media at the same paths in both containers.
+
+### Plex
+
+Plex remembers a file's codec from when it was added. When Codecsmith
+replaces a file under the same name, Plex keeps the old details, and a
+client that direct-plays the old codec can fail to play the new file.
+With the integration on, every replaced file gets a folder scan and a
+re-analyze:
+
+```yaml
+integrations:
+  plex:
+    enabled: true
+    url: http://plex:32400
+    token: ""        # or PLEX_TOKEN; the X-Plex-Token of the server owner
+    path_map: {}     # e.g. {"/media": "/data"} if Plex mounts media elsewhere
+```
+
+A file outside every Plex library is skipped. A failure is logged and
+never holds up the queue.
 
 ### Postgres and several workers
 

@@ -190,6 +190,7 @@ type Profile struct {
 // Integrations configures optional external services.
 type Integrations struct {
 	SABnzbd SABnzbd `yaml:"sabnzbd"`
+	Plex    Plex    `yaml:"plex"`
 	// WebhookSecret protects /api/webhook/* when set (?key=... or
 	// X-API-Key). Falls back to web.api_key.
 	WebhookSecret string `yaml:"webhook_secret"`
@@ -200,6 +201,17 @@ type SABnzbd struct {
 	Enabled bool   `yaml:"enabled"`
 	URL     string `yaml:"url"`
 	APIKey  string `yaml:"api_key"`
+}
+
+// Plex is told to re-analyze each replaced file, so it does not keep serving
+// the old codec details.
+type Plex struct {
+	Enabled bool   `yaml:"enabled"`
+	URL     string `yaml:"url"`
+	Token   string `yaml:"token"`
+	// PathMap translates Codecsmith paths to the paths Plex sees, e.g.
+	// {"/media/movies": "/data/movies"}. Empty when both use the same paths.
+	PathMap map[string]string `yaml:"path_map"`
 }
 
 // Defaults returns the built-in configuration.
@@ -338,6 +350,9 @@ func (c *Config) applyEnv() {
 	boolean("SABNZBD_ENABLED", &c.Integrations.SABnzbd.Enabled)
 	str("SABNZBD_URL", &c.Integrations.SABnzbd.URL)
 	str("SABNZBD_API_KEY", &c.Integrations.SABnzbd.APIKey)
+	boolean("PLEX_ENABLED", &c.Integrations.Plex.Enabled)
+	str("PLEX_URL", &c.Integrations.Plex.URL)
+	str("PLEX_TOKEN", &c.Integrations.Plex.Token)
 	str("CODECSMITH_WEBHOOK_SECRET", &c.Integrations.WebhookSecret)
 
 	// Postgres DSN implies the postgres driver unless explicitly set.
@@ -587,6 +602,9 @@ func (c *Config) Redacted() *Config {
 	}
 	if out.Integrations.SABnzbd.APIKey != "" {
 		out.Integrations.SABnzbd.APIKey = "***"
+	}
+	if out.Integrations.Plex.Token != "" {
+		out.Integrations.Plex.Token = "***"
 	}
 	if out.Integrations.WebhookSecret != "" {
 		out.Integrations.WebhookSecret = "***"

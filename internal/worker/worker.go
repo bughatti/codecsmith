@@ -6,6 +6,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -43,6 +44,7 @@ type Worker struct {
 	log   *slog.Logger
 	xc    *transcoder.Transcoder
 	scan  *scanner.Scanner
+	plex  *integrations.Plex // nil when the Plex integration is off
 
 	wake    chan struct{}
 	scanNow chan struct{}
@@ -66,6 +68,9 @@ func New(ctx context.Context, cfg *config.Config, store *db.Store, log *slog.Log
 		scan:    scanner.New(cfg, store, log.With("subsys", "scanner")),
 		wake:    make(chan struct{}, 1),
 		scanNow: make(chan struct{}, 1),
+	}
+	if px := cfg.Integrations.Plex; px.Enabled && px.URL != "" && px.Token != "" {
+		w.plex = integrations.NewPlex(px.URL, px.Token, px.PathMap, log.With("subsys", "plex"))
 	}
 	return w, nil
 }
@@ -268,12 +273,29 @@ func (w *Worker) processJob(ctx context.Context, j *job.Job) {
 	switch result.Status {
 	case job.StatusCompleted:
 		log.Info("job complete", "saved", j.OriginalSize-result.NewSize, "new_size", result.NewSize, "codec", result.TargetCodec)
+		if w.plex != nil && result.Path != "" {
+			go w.refreshPlex(ctx, log, j.FilePath, result.Path)
+		}
 	case job.StatusSkipped:
 		log.Info("job skipped", "reason", msg)
 	case job.StatusCancelled:
 		log.Info("job cancelled")
 	default:
 		log.Warn("job failed", "err", msg)
+	}
+}
+
+// refreshPlex tells Plex the file changed. Runs in the background: a slow or
+// unreachable Plex must never hold up the queue, and a failure only logs.
+func (w *Worker) refreshPlex(ctx context.Context, log *slog.Logger, oldPath, newPath string) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+	switch err := w.plex.Refresh(ctx, oldPath, newPath); {
+	case err == nil:
+	case errors.Is(err, integrations.ErrNotInPlex):
+		log.Debug("plex: file is not in a Plex library", "file", newPath)
+	default:
+		log.Warn("plex refresh failed; Plex may show stale codec info until its next scan", "file", newPath, "err", err)
 	}
 }
 

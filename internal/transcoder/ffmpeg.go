@@ -44,6 +44,9 @@ type Result struct {
 	Status      job.Status
 	NewSize     int64
 	TargetCodec string
+	// Path is where the finished file now lives; it differs from the job's
+	// path when the container (extension) changed. Set on completion.
+	Path string
 	// Message explains non-completed outcomes and is stored on the job.
 	Message string
 }
@@ -255,7 +258,7 @@ func (t *Transcoder) Transcode(ctx context.Context, j *job.Job, progress Progres
 		log.Info("container changed", "from", filepath.Base(j.FilePath), "to", filepath.Base(finalPath))
 	}
 
-	return &Result{Status: job.StatusCompleted, NewSize: newSize, TargetCodec: target}, nil
+	return &Result{Status: job.StatusCompleted, NewSize: newSize, TargetCodec: target, Path: finalPath}, nil
 }
 
 // skipReason returns "" when the file should be encoded.
