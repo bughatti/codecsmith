@@ -120,15 +120,33 @@ func (s *Store) q(query string) string {
 }
 
 func (s *Store) exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	return s.db.ExecContext(ctx, s.q(query), args...)
+	return s.db.ExecContext(ctx, s.q(query), utcArgs(args)...)
 }
 
 func (s *Store) query(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
-	return s.db.QueryContext(ctx, s.q(query), args...)
+	return s.db.QueryContext(ctx, s.q(query), utcArgs(args)...)
 }
 
 func (s *Store) queryRow(ctx context.Context, query string, args ...any) *sql.Row {
-	return s.db.QueryRowContext(ctx, s.q(query), args...)
+	return s.db.QueryRowContext(ctx, s.q(query), utcArgs(args)...)
+}
+
+// utcArgs converts time arguments to UTC. SQLite stores timestamps as text
+// and compares them as strings, so a cutoff in local time against rows
+// written in UTC (see now) matched the wrong rows whenever TZ was not UTC.
+func utcArgs(args []any) []any {
+	for i, a := range args {
+		switch t := a.(type) {
+		case time.Time:
+			args[i] = t.UTC()
+		case *time.Time:
+			if t != nil {
+				u := t.UTC()
+				args[i] = &u
+			}
+		}
+	}
+	return args
 }
 
 // now returns a UTC timestamp truncated to microseconds (Postgres precision)
