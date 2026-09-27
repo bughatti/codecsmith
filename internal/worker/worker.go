@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bughatti/codecsmith/internal/config"
@@ -51,6 +52,9 @@ type Worker struct {
 	pauseMu sync.RWMutex
 	paused  bool
 	running sync.WaitGroup
+	// lastProgress is when any job last reported encode progress (unix nanoseconds); the encoder health check
+	// skips its probe while jobs are demonstrably encoding.
+	lastProgress atomic.Int64
 }
 
 // New detects the encoder and builds a Worker.
@@ -225,6 +229,7 @@ func (w *Worker) processJob(ctx context.Context, j *job.Job) {
 
 	lastCancelCheck := time.Now()
 	result, err := w.xc.Transcode(ctx, j, func(p transcoder.Progress) bool {
+		w.lastProgress.Store(time.Now().UnixNano())
 		pct, speed, fps, eta := p.Percent, p.Speed, p.FPS, p.ETASeconds
 		_ = w.store.UpdateJob(ctx, j.ID, db.Update{Progress: &pct, Speed: &speed, FPS: &fps, ETASeconds: &eta})
 		if time.Since(lastCancelCheck) > 3*time.Second {
@@ -568,6 +573,14 @@ func (w *Worker) encoderHealthLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
+		}
+		// Jobs making progress prove the encoder works. Probing then only opens one more session on a busy GPU,
+		// and when GPU memory is full that extra session fails even though the running encodes are fine; the
+		// old behaviour then killed every healthy job and restarted, forever (59 restarts, 2026-09-26).
+		if since := time.Since(time.Unix(0, w.lastProgress.Load())); since < 2*time.Minute {
+			log.Debug("encoder busy and making progress; probe skipped", "last_progress", since.Round(time.Second))
+			timer.Reset(90 * time.Second)
+			continue
 		}
 		ok := false
 		for attempt := 1; attempt <= 3; attempt++ {
