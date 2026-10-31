@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.8
 
 require (
-	github.com/go-chi/chi/v5 v5.3.2
+	github.com/go-chi/chi/v5 v5.4.0
 	github.com/jackc/pgx/v5 v5.11.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
